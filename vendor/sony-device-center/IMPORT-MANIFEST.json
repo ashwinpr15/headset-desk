@@ -1,0 +1,301 @@
+{
+  "source": "https://github.com/marconvcm/sony-device-center",
+  "input": "sony-device-center-main.zip",
+  "archive_sha256": "934f6f0a98963bb45ccb8c96336189f49c59eff565b6acb2fc837738af5b2105",
+  "archive_project_version": "0.1.5",
+  "commit": "not recorded in uploaded archive; not asserted",
+  "files": [
+    {
+      "path": "Client/ByteMagic.cpp",
+      "sha256": "599358c03c8d19bac785ee719f33c3571a3d26ed1de0f97eb9dd51359f142241"
+    },
+    {
+      "path": "Client/ByteMagic.h",
+      "sha256": "a7eaecbfd4b2e806b0898e4c5658455413354895c01aece715074c4225cf7409"
+    },
+    {
+      "path": "Client/Constants.h",
+      "sha256": "2c7c4bb6ca3e4c5a13921bdc3b41c51f74c950316391a5c1735c71a48da7aa95"
+    },
+    {
+      "path": "Client/Exceptions.h",
+      "sha256": "d93ed4f5dbefe108b115b28305d59fd0f1aa8e369f887ee74813843c65aa83e9"
+    },
+    {
+      "path": "Client/IBluetoothConnector.h",
+      "sha256": "3f1101da3a6cf2e2c3598ca16a170ea9e9615d661951ff434b085d1509bed62f"
+    },
+    {
+      "path": "Client/windows/WindowsBluetoothConnector.cpp",
+      "sha256": "dab52c8e373ee58addb386ace086baf9bfecddd1a4fdcae2216e9483c264acfe"
+    },
+    {
+      "path": "Client/windows/WindowsBluetoothConnector.h",
+      "sha256": "b067745da708bfbc560859307737e0e9b4c3a63eb9d0da4100778b855710f139"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "0b3db3e11db69b6d0de551cb7d9a56cc65be7f8fd912bcf6bae61ba57df36c34"
+    },
+    {
+      "path": "libs/sony-protocol/CMakeLists.txt",
+      "sha256": "5a4b731eb6a82b2ef31fdd7e66f1387e53655e21126ce3f1793fa5239d5715c0"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/CapabilityCache.h",
+      "sha256": "5d9c8f760b5c5f718029bc54dc12e9deb29918225809dd5a5f78719694009665"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/CapabilityDiscovery.h",
+      "sha256": "44e81554b7b8a1802e8e95576454bbfa185a3f38486f9ce352c28e3b8440d281"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/DataType.h",
+      "sha256": "260afee8c1f5974bf9cccf3164b0165255a21fa0ed7586ec4119fb6104b662b0"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/DeviceEventDispatcher.h",
+      "sha256": "f37df9d6386d16eb6a65253ad615443d25e27a410b5a9b305bf976e21052ab54"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/DeviceEvents.h",
+      "sha256": "7bba2d11ee3f688871b8c816f25ee0c62f1c475f8bde75898fcd763b449b9f83"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/DeviceProfile.h",
+      "sha256": "42d80b44c09ee0008c8a3d3d3baa40711636b275d901d244ec3444e98e3c8c84"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/DeviceProfileRegistry.h",
+      "sha256": "d88bd7b78b20bf0464cbb5a456cf1bf61df15c1adb227bfd4804abf010412912"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/DeviceState.h",
+      "sha256": "bfbc895784a26fefdbeeebf281874a25090a8ef3d0ffb1ee477d3be57ebbe750"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/EqualizerPresets.h",
+      "sha256": "09a80d825e6f23db8c2a972219bd353a7326da9c1399b25529ef2ee7ca872070"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/FrameCodec.h",
+      "sha256": "a9f5655a54071795688e2c51611950d189721109008a25b8b42c0c5ac4ddce66"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/IProtocol.h",
+      "sha256": "d18289024309e0bb7e62a995e853de3d1f874c93ceb1fad9acb235bbcb7b04dd"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/ProtocolV1.h",
+      "sha256": "9dcea6987b226094aff55877423d2b1fe63d136d8b0c4a46ffe02f752144490a"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/ProtocolV2.h",
+      "sha256": "84dac6284e713be29bff77bda6bcdef45e42f5c01d5f5a08c8301a0a242d3342"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/SemanticTypes.h",
+      "sha256": "016c252cfcb59e355b3551fbafb6cb0d47a052199d3bc64d3b9816aa2c0ffa1c"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/SonyError.h",
+      "sha256": "6b9192b9cf00759154df5dbbb6a958c92bd7129fe59159fbdca2aa1e047d9ce1"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/SonyFrame.h",
+      "sha256": "cc389d8c6dfff9375d72b3698a32930a4fbe8e062b84c3218c6b2c2ee5a2c601"
+    },
+    {
+      "path": "libs/sony-protocol/include/sony/protocol/SonyProtocolSession.h",
+      "sha256": "4b340c0aaa9c69512ba9b74ddb43609c5f874d2ed5110fe3ddd4f19c11f9f469"
+    },
+    {
+      "path": "libs/sony-protocol/src/CapabilityCache.cpp",
+      "sha256": "4028f2948f054911b362ce43e35e7b3299d4ae64d206360c7244405c6f8d8141"
+    },
+    {
+      "path": "libs/sony-protocol/src/CapabilityDiscovery.cpp",
+      "sha256": "4422bc1b176c82d029eba3bfce8cb6aafcbc198fd7eeafec82cfb28086b376f8"
+    },
+    {
+      "path": "libs/sony-protocol/src/DeviceEventDispatcher.cpp",
+      "sha256": "cc2c24931fbe04e20400cea317de086e861910128642b521cfc057ba8351f7d4"
+    },
+    {
+      "path": "libs/sony-protocol/src/DeviceProfileRegistry.cpp",
+      "sha256": "250af5207714ccad351ed9dfa7de808b1f8e4c6374f8ded1c7c0e1445e3c094a"
+    },
+    {
+      "path": "libs/sony-protocol/src/EqualizerPresets.cpp",
+      "sha256": "3783292d4bfa5eb81e240fe5f7ab9491a0d3b82fac9073324d23bb8cf3621022"
+    },
+    {
+      "path": "libs/sony-protocol/src/FrameCodec.cpp",
+      "sha256": "5ae4c770757278e8d9476ab480840420b8196330c1053e5c4c4ca9c8238e150d"
+    },
+    {
+      "path": "libs/sony-protocol/src/ProtocolHelpers.h",
+      "sha256": "8cb312588afce34faa47c1e5aabfeef58532a1f3eecec6fd164d5d13db82241c"
+    },
+    {
+      "path": "libs/sony-protocol/src/ProtocolV1.cpp",
+      "sha256": "e8a46365373c824a0546a0ad8dd8ab369454a559bfd8e2f86d1a488ad27c96bf"
+    },
+    {
+      "path": "libs/sony-protocol/src/ProtocolV2.cpp",
+      "sha256": "376429a8f80df56f90c7739f1498b5d8398faa71b5fa7de51d60c23f28e4d4c5"
+    },
+    {
+      "path": "libs/sony-protocol/src/SonyProtocolSession.cpp",
+      "sha256": "a0e296cf8dfc741d398cdd017cb386d92b472e4ea3bc219bb3f900401d84d471"
+    },
+    {
+      "path": "libs/sony-transport/CMakeLists.txt",
+      "sha256": "08eb7476974769859e35f38ae3ce8b16d590d2f3e783ef8ec91181ab4f9043f4"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/BluetoothConnectorTransport.h",
+      "sha256": "cb59a8b6b0cb871e995a307c88fa87dc69780752d545338c212466c789612a02"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/DeviceAddress.h",
+      "sha256": "7842339de51b82a510edf550d2e30a63735f04772df6d50f84df839ad39da045"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/DiscoveredDevice.h",
+      "sha256": "657c9fd77cbd94a4ac8c124559ede940250f216d6d48df9a40f478a7936bf34a"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/FakeTransport.h",
+      "sha256": "01a6b1b8f14aa37fd6e2c56494a0b536b052aeee8c224f54dfbe0a4de61103de"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/IDeviceDiscovery.h",
+      "sha256": "5e47af2612acd1ae698a4e8719e2b871f8c6dfd1acb609203f9f626c687e507a"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/ITransport.h",
+      "sha256": "8f84bc7ed7addb8d368ece2a6ec4ee092963a05413030265a76119180fecc084"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/LinuxBluetoothTransport.h",
+      "sha256": "286f948fc15881e59c037b9779d020bbf06554c1823b4786c05702db046e59ab"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/Logger.h",
+      "sha256": "82a19a797e5053077587972ffbb80da32da64704dffa02df1900641bbdcb1f6d"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/MacOSBluetoothTransport.h",
+      "sha256": "c9e081f0c2eb6bd988a685f053466c9002c735ebee56d45e24d6629fedd452ec"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/PlatformTransport.h",
+      "sha256": "2dd7bc559384daa1a600a655ccb6f95381b49650a00cb64419284c77b92f55b5"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/SonyDeviceFilter.h",
+      "sha256": "d465849a63dd24008b73f6aa83323c7db1ee9a4b81137d894dd8c4d76d38428d"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/SonyError.h",
+      "sha256": "a1f4424cf524e1d70ee507e1df199039c2d16b0d907aa16859eb6c1479bfb4d2"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/TransportBluetoothConnector.h",
+      "sha256": "fa89d3b72a15a836504a7d56bb0d28ff3abdca98da32cd01f3046d62585bae15"
+    },
+    {
+      "path": "libs/sony-transport/include/sony/transport/WindowsBluetoothTransport.h",
+      "sha256": "d55c0ba0f803df54d6dab74a7fb4bdca3512738d8808ddb08a0ca2351a85daec"
+    },
+    {
+      "path": "libs/sony-transport/src/BluetoothConnectorTransport.cpp",
+      "sha256": "f9bc1aca33c93f59009a4059ba37b6e8840f695ba729a5c2724209fa25ded73d"
+    },
+    {
+      "path": "libs/sony-transport/src/FakeTransport.cpp",
+      "sha256": "5bf5411ddf0e2f5ab6fc7f34e1b36090b09f2c24a9b4718b8cfb9243e18b56c9"
+    },
+    {
+      "path": "libs/sony-transport/src/Logger.cpp",
+      "sha256": "1a26ac784d85c5302d4ebeda1dbaebe78081da92e2afe061a36f36b3cb242b1a"
+    },
+    {
+      "path": "libs/sony-transport/src/PlatformTransport.cpp",
+      "sha256": "43a2b10b994acb953b2cd842cc9f06d4f7c70b27c2298336d4439ee8761124b2"
+    },
+    {
+      "path": "libs/sony-transport/src/SonyDeviceFilter.cpp",
+      "sha256": "a311c2e0fe39e332e0609ef2096f93323089fe05c95c54ce98870fbe0641e208"
+    },
+    {
+      "path": "libs/sony-transport/src/SonyOuiTable.h",
+      "sha256": "c5e878726804025f5ee109d76729b447ded3daee6b251a21bdd9228a9ba01ab1"
+    },
+    {
+      "path": "libs/sony-transport/src/TransportBluetoothConnector.cpp",
+      "sha256": "5d46f3bf6c5ab36863f9652d2903613425d5c43060366c3787ebdb09617bb537"
+    },
+    {
+      "path": "tests/protocol/CapabilityDiscoveryTests.cpp",
+      "sha256": "66ad5457b3328b49b0db8e4372e6a6e3853ccdec5f85b8f4842554ceecd67d03"
+    },
+    {
+      "path": "tests/protocol/DeviceEventDispatcherTests.cpp",
+      "sha256": "c5d2509c97b8c2049c02c5f10a253fd2edda28ee34b448ae282417f89c29e5bf"
+    },
+    {
+      "path": "tests/protocol/DeviceProfileTests.cpp",
+      "sha256": "638342c2d2f75b39f88a45136252177b902a41c29a2c5611a5aa9977be492927"
+    },
+    {
+      "path": "tests/protocol/DeviceStateTests.cpp",
+      "sha256": "9fe4ea3b12dcf2095f6b64be395b02f6a6a162e728672cc5a84ad559a4fb7774"
+    },
+    {
+      "path": "tests/protocol/FrameCodecTests.cpp",
+      "sha256": "593638269db9eaa9c2abd3bc4621e242a9e07000fe4c08dc4b6935e55bb4a115"
+    },
+    {
+      "path": "tests/protocol/ProtocolV1Tests.cpp",
+      "sha256": "b26e61c688014b239764a2f51e95198be4d31aab5ff3681b4ac722ca9ab776b5"
+    },
+    {
+      "path": "tests/protocol/ProtocolV2Tests.cpp",
+      "sha256": "50e8f75647fadf422363c89d2de39f4ccc4e38a452918201a38bd0a46de3829f"
+    },
+    {
+      "path": "tests/protocol/ReplyingFakeTransport.h",
+      "sha256": "f313f510d6c279ceac4d60412962a8444a6a3b3fa55a5d1a7d38c516aefc3bee"
+    },
+    {
+      "path": "tests/protocol/SonyErrorTests.cpp",
+      "sha256": "2c074fafd33b6184b1b4cf506c369ae3b4b31fbcd9a45fba9898bed805dd9e20"
+    },
+    {
+      "path": "tests/protocol/SonyProtocolSessionTests.cpp",
+      "sha256": "b97f640827224279e2d52efb62a0adddd368fc1d9c7992b0bfe67ec1af4762ef"
+    },
+    {
+      "path": "tests/transport/FakeTransportTests.cpp",
+      "sha256": "585efff5f718c9555579e87b82879ce9726b8bde40838c8bd48a26c0cb9bbba8"
+    },
+    {
+      "path": "tests/transport/LoggerTests.cpp",
+      "sha256": "25b644549f58b1101229610f9c13d8e6caf5d891c215b18cc711fc44c8a821db"
+    },
+    {
+      "path": "tests/transport/SonyDeviceFilterTests.cpp",
+      "sha256": "ca6850713362829297dd07221b4391513b3cd3129852a395786fe74633c987cd"
+    },
+    {
+      "path": "docs/device-matrix.md",
+      "sha256": "4b8fddb18b5b6153c27e8760fe7b8a38f647aec79bff0021ccf1f7e6cc49da80"
+    },
+    {
+      "path": "docs/architecture-current.md",
+      "sha256": "6bf3a932727d51f863e3eb0dcbb4aed13c3bd3cb04dc71921ee264513e7148b5"
+    }
+  ]
+}

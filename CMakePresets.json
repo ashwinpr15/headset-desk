@@ -1,0 +1,36 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows x64 / Visual Studio 2022 / Debug",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/msvc-debug",
+      "cacheVariables": { "BUILD_TESTING": "ON" }
+    },
+    {
+      "name": "windows-ninja-debug",
+      "displayName": "Windows / Ninja / Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ninja-debug",
+      "cacheVariables": { "BUILD_TESTING": "ON", "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "windows-ninja-diagnostics",
+      "displayName": "Windows / Ninja / Internal diagnostics",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ninja-diagnostics",
+      "cacheVariables": { "BUILD_TESTING": "OFF", "CMAKE_BUILD_TYPE": "Release" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-msvc-debug", "configurePreset": "windows-msvc-debug", "configuration": "Debug" },
+    { "name": "windows-ninja-debug", "configurePreset": "windows-ninja-debug" },
+    { "name": "windows-ninja-diagnostics", "configurePreset": "windows-ninja-diagnostics" }
+  ],
+  "testPresets": [
+    { "name": "windows-msvc-debug", "configurePreset": "windows-msvc-debug", "configuration": "Debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-ninja-debug", "configurePreset": "windows-ninja-debug", "output": { "outputOnFailure": true } }
+  ]
+}

@@ -1,0 +1,10 @@
+/build*/
+/captures/
+/local/
+CMakeUserPresets.json
+*.log
+*.zip
+*.exe
+*.dll
+*.pdb
+/dist/

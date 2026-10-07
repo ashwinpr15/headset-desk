@@ -1,0 +1,28 @@
+Headset Desk Phase 2
+mode=READ_ONLY_HARDWARE model=WH-CH720N
+Addresses and machine/account information are omitted. RX records are stream chunks.
+TX records are validated send attempts; receipt by hardware is not implied.
+2251ms TX 11B 3e 0c 00 00 00 00 02 00 00 0e 3c 
+2308ms RX 9B 3e 01 01 00 00 00 00 02 3c 
+2308ms RX 17B 3e 0c 00 00 00 00 08 01 00 03 00 10 02 00 00 2a 3c 
+2308ms TX 9B 3e 01 01 00 00 00 00 02 3c 
+2309ms TX 11B 3e 0c 01 00 00 00 02 22 00 31 3c 
+2370ms RX 9B 3e 01 00 00 00 00 00 01 3c 
+2371ms RX 13B 3e 0c 01 00 00 00 04 23 00 63 00 97 3c 
+2371ms TX 9B 3e 01 00 00 00 00 00 01 3c 
+2373ms TX 11B 3e 0c 00 00 00 00 02 04 02 14 3c 
+2434ms RX 9B 3e 01 01 00 00 00 00 02 3c 
+2435ms RX 17B 3e 0c 00 00 00 00 08 05 02 05 31 2e 31 2e 34 12 3c 
+2435ms TX 9B 3e 01 01 00 00 00 00 02 3c 
+2435ms TX 11B 3e 0c 01 00 00 00 02 12 02 23 3c 
+2543ms RX 9B 3e 01 00 00 00 00 00 01 3c 
+2545ms RX 12B 3e 0c 01 00 00 00 03 13 02 02 27 3c 
+2545ms TX 9B 3e 01 00 00 00 00 00 01 3c 
+2545ms TX 11B 3e 0c 00 00 00 00 02 66 17 8b 3c 
+2666ms RX 9B 3e 01 01 00 00 00 00 02 3c 
+2667ms RX 16B 3e 0c 00 00 00 00 07 67 17 01 00 01 00 14 a7 3c 
+2667ms TX 9B 3e 01 01 00 00 00 00 02 3c 
+2668ms TX 11B 3e 0c 01 00 00 00 02 56 00 65 3c 
+2730ms RX 9B 3e 01 00 00 00 00 00 01 3c 
+2732ms RX 19B 3e 0c 01 00 00 00 0a 57 00 10 06 09 0a 0f 11 11 13 db 3c 
+2732ms TX 9B 3e 01 00 00 00 00 00 01 3c 

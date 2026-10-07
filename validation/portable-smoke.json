@@ -1,0 +1,71 @@
+{
+  "mode": "offline only",
+  "restricted_PATH": "Windows System32 only",
+  "cases": [
+    {
+      "args": [],
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "--simulate",
+        "xm5"
+      ],
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "--simulate",
+        "ch720n"
+      ],
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "--device-index",
+        "1"
+      ],
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "passed": true
+    },
+    {
+      "args": [
+        "--simulate",
+        "xm5",
+        "--devices"
+      ],
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "passed": true
+    }
+  ],
+  "packet_capture": true,
+  "existing_capture_preserved": true,
+  "imported_dlls": [
+    "KERNEL32.dll",
+    "api-ms-win-crt-stdio-l1-1-0.dll",
+    "api-ms-win-crt-runtime-l1-1-0.dll",
+    "api-ms-win-crt-locale-l1-1-0.dll",
+    "api-ms-win-crt-heap-l1-1-0.dll",
+    "api-ms-win-crt-private-l1-1-0.dll",
+    "api-ms-win-crt-string-l1-1-0.dll",
+    "api-ms-win-crt-time-l1-1-0.dll",
+    "api-ms-win-crt-multibyte-l1-1-0.dll",
+    "api-ms-win-crt-convert-l1-1-0.dll",
+    "api-ms-win-crt-math-l1-1-0.dll",
+    "api-ms-win-crt-environment-l1-1-0.dll",
+    "WS2_32.dll",
+    "RPCRT4.dll",
+    "bthprops.cpl",
+    "api-ms-win-crt-filesystem-l1-1-0.dll"
+  ],
+  "executable_bytes": 1751552,
+  "executable_sha256": "539e629820c400e355e4767e44f73fcce947239a47107220d6a57b6619683a3c"
+}

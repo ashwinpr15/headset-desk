@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="Win32-ninja" tests="6" failures="0" disabled="0" skipped="0" time="12" timestamp="2026-10-07T19:22:25">
+	<testcase name="upstream-protocol" classname="upstream-protocol" time="9.1368" status="run">
+		<properties />
+		<system-out>Randomness seeded to: 3483965842
+===============================================================================
+All tests passed (536 assertions in 78 test cases)
+
+</system-out>
+	</testcase>
+	<testcase name="headset-desk-core" classname="headset-desk-core" time="2.82826" status="run">
+		<properties />
+		<system-out>[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphone transport
+[INFO] [sony.transport] Headphone transport connected
+[INFO] [sony.transport] Connecting headphon...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="diagnostic-simulation" classname="diagnostic-simulation" time="0.109575" status="run">
+		<properties />
+		<system-out>SIMULATION - synthetic values, no hardware evidence
+Model (paired Windows name): WH-1000XM5
+Battery %: 80
+Charging: false
+Firmware: 2.5.1
+Reported active codec: AAC
+Noise control: NC
+EQ: 0 0 0 0 0 Clear Bass 0
+Writes: disabled
+Read evidence: reviewed hardware capture on firmware 2.5.1; observed states only. This run does not update verification status.
+</system-out>
+	</testcase>
+	<testcase name="diagnostic-ch720n-simulation" classname="diagnostic-ch720n-simulation" time="0.111733" status="run">
+		<properties />
+		<system-out>SIMULATION - synthetic values, no hardware evidence
+Model (paired Windows name): WH-CH720N
+Battery %: 80
+Charging: false
+Firmware: 1.1.4
+Reported active codec: AAC
+Noise control: NC
+EQ: 0 0 0 0 0 Clear Bass 0
+Writes: disabled
+Read evidence: reviewed hardware capture on firmware 1.1.4; observed states only. This run does not update verification status.
+</system-out>
+	</testcase>
+	<testcase name="diagnostic-rejects-implicit-hardware" classname="diagnostic-rejects-implicit-hardware" time="0.0260074" status="run">
+		<properties />
+		<system-out>Headset Desk diagnostics: Hardware queries require --read-only
+</system-out>
+	</testcase>
+	<testcase name="diagnostic-rejects-mixed-modes" classname="diagnostic-rejects-mixed-modes" time="0.0159884" status="run">
+		<properties />
+		<system-out>Headset Desk diagnostics: Choose exactly one mode: devices, simulation, or read-only device-index
+</system-out>
+	</testcase>
+</testsuite>

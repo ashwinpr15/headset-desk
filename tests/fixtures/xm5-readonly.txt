@@ -1,0 +1,32 @@
+Headset Desk Phase 2
+mode=READ_ONLY_HARDWARE model=WH-1000XM5
+Addresses and machine/account information are omitted. RX records are stream chunks.
+TX records are validated send attempts; receipt by hardware is not implied.
+184ms TX 11B 3e 0c 00 00 00 00 02 00 00 0e 3c 
+230ms RX 9B 3e 01 01 00 00 00 00 02 3c 
+231ms RX 17B 3e 0c 01 00 00 00 08 01 00 03 00 20 16 00 00 4f 3c 
+231ms TX 9B 3e 01 00 00 00 00 00 01 3c 
+231ms TX 11B 3e 0c 01 00 00 00 02 22 00 31 3c 
+276ms RX 9B 3e 01 00 00 00 00 00 01 3c 
+277ms RX 13B 3e 0c 00 00 00 00 04 23 00 2c 00 5f 3c 
+277ms TX 9B 3e 01 01 00 00 00 00 02 3c 
+279ms TX 11B 3e 0c 00 00 00 00 02 04 02 14 3c 
+316ms RX 24B 3e 0c 01 00 00 00 0f c9 01 0a 75 6e 69 74 52 65 6d 6f 76 65 00 00 1e 3c 
+316ms TX 9B 3e 01 00 00 00 00 00 01 3c 
+317ms RX 9B 3e 01 01 00 00 00 00 02 3c 
+367ms RX 17B 3e 0c 00 00 00 00 08 05 02 05 32 2e 35 2e 31 14 3c 
+367ms TX 9B 3e 01 01 00 00 00 00 02 3c 
+368ms TX 11B 3e 0c 01 00 00 00 02 12 02 23 3c 
+406ms RX 9B 3e 01 00 00 00 00 00 01 3c 
+407ms RX 12B 3e 0c 01 00 00 00 03 13 02 02 27 3c 
+407ms TX 9B 3e 01 00 00 00 00 00 01 3c 
+407ms TX 11B 3e 0c 00 00 00 00 02 66 17 8b 3c 
+428ms RX 9B 3e 01 01 00 00 00 00 02 3c 
+428ms RX 16B 3e 0c 00 00 00 00 07 67 17 01 00 00 01 14 a7 3c 
+428ms TX 9B 3e 01 01 00 00 00 00 02 3c 
+429ms TX 11B 3e 0c 01 00 00 00 02 56 00 65 3c 
+447ms RX 9B 3e 01 00 00 00 00 00 01 3c 
+478ms RX 19B 3e 0c 01 00 00 00 0a 57 00 a1 06 0d 09 0a 0c 0c 0e 5b 3c 
+479ms TX 9B 3e 01 00 00 00 00 00 01 3c 
+498ms RX 30B 3e 0c 00 00 00 00 15 c9 01 10 6b 65 79 43 75 73 74 6f 6d 42 74 6e 48 6f 6c 64 00 00 6a 3c 
+498ms TX 9B 3e 01 01 00 00 00 00 02 3c 
