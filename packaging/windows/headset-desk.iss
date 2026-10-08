@@ -6,7 +6,9 @@
 #ifndef OutputDir
   #error OutputDir must point to the release output directory
 #endif
-#define AppVersion "0.3.0-beta.1"
+#ifndef AppVersion
+  #define AppVersion "0.4.0-beta.1"
+#endif
 
 [Setup]
 AppId={{0A8D957F-52C5-4EEA-9931-2F37B9C242DD}
@@ -28,7 +30,7 @@ OutputDir={#OutputDir}
 OutputBaseFilename=headset-desk-v{#AppVersion}-windows-x64-setup
 SetupIconFile=..\..\apps\desktop\resources\headset-desk.ico
 UninstallDisplayIcon={app}\headset-desk.exe
-VersionInfoVersion=0.3.0.1
+VersionInfoVersion=0.4.0.1
 LicenseFile=..\..\LICENSE
 Compression=lzma2
 SolidCompression=yes

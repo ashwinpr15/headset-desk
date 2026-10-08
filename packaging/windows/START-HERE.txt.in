@@ -1,0 +1,22 @@
+Headset Desk @VERSION@ - Windows 11 x64
+
+Run headset-desk.exe from this folder. Keep all DLL, plugin and license files.
+Pair WH-1000XM5 or WH-CH720N using Windows Bluetooth settings, then turn it on.
+Choose Connect if the app did not connect automatically.
+
+Changing settings is experimental and starts off. Turn on "Experimental controls"
+under Noise control to change Noise Cancelling, Ambient (1-20), Off, the five EQ
+bands and Clear Bass. EQ edits stay local until Apply; Reset discards them.
+Each change is sent once and checked with a fresh readback. A failure turns the
+controls off; reconnecting never replays a setting. No firmware updates or power
+commands are offered.
+
+Close hides to the tray; tray Quit exits. The application runs offline. No Qt
+installation, account or startup entry is needed. This build is unsigned, and
+Windows SmartScreen may warn about an unrecognized application.
+
+Source, installer, releases, checksums and issue tracker:
+https://github.com/ashwinpr15/headset-desk
+
+Qt and runtime licenses are in licenses/. Exact corresponding Qt sources:
+https://github.com/ashwinpr15/headset-desk/releases/download/v@VERSION@/headset-desk-v@VERSION@-qt-runtime-sources.zip

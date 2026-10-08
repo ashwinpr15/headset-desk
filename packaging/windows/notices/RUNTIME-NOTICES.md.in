@@ -1,0 +1,19 @@
+# Runtime notices
+
+Headset Desk code and the imported Sony Device Center protocol/transport are MIT licensed.
+Qt 6.8.3 is dynamically linked, unmodified, under LGPL version 3, with its additional
+third-party notices preserved in Qt-6.8.3/. GPL version 3 and LGPL version 3 texts are included.
+Replacing compatible Qt DLLs and QML plugins is permitted; reverse engineering for debugging
+such replacements is permitted. Do not distribute a single EXE without its runtime files.
+
+The exact corresponding Qt source archives, their upstream URLs and SHA-256 hashes are
+recorded in Qt-source-manifest.json. The companion GitHub release asset
+headset-desk-v@VERSION@-qt-runtime-sources.zip contains these complete source archives.
+Provide that source archive alongside the app if redistributing this application.
+The separate Headset Desk source ZIP contains the application code, QML and CMake build files.
+To relink/rebuild, use Qt 6.8.3, MinGW GCC 13.1.0 and the build instructions in docs/desktop-build.md.
+
+GCC runtime libraries use GPL version 3 with the GCC Runtime Library Exception.
+The MinGW-w64 and winpthreads notices supplied with Qt's MinGW 13.1.0 toolchain are preserved.
+No Sony artwork is included. The original headset icon is drawn by Headset Desk.
+

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(HeadsetDesk VERSION 0.3.0 LANGUAGES CXX)
+project(HeadsetDesk VERSION 0.4.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Headset Desk v1 targets Windows 11 only.")
@@ -62,9 +62,12 @@ if(HEADSET_DESK_BUILD_DESKTOP)
     set_source_files_properties(apps/desktop/qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
     set_source_files_properties(apps/desktop/qml/Colors.qml PROPERTIES QT_RESOURCE_ALIAS Colors.qml)
     set_source_files_properties(apps/desktop/qml/Section.qml PROPERTIES QT_RESOURCE_ALIAS Section.qml)
+    set_source_files_properties(apps/desktop/qml/HdSlider.qml PROPERTIES QT_RESOURCE_ALIAS HdSlider.qml)
+    set_source_files_properties(apps/desktop/qml/HeadphoneArt.qml PROPERTIES QT_RESOURCE_ALIAS HeadphoneArt.qml)
     qt_add_qml_module(headset-desk URI HeadsetDesk VERSION 1.0
         QML_FILES apps/desktop/qml/Main.qml apps/desktop/qml/Colors.qml
-        apps/desktop/qml/Section.qml)
+        apps/desktop/qml/Section.qml apps/desktop/qml/HdSlider.qml
+        apps/desktop/qml/HeadphoneArt.qml)
     if(BUILD_TESTING)
         find_package(Qt6 REQUIRED COMPONENTS Test)
         qt_add_executable(headset-desk-desktop-tests tests/DesktopTests.cpp

@@ -1,6 +1,20 @@
 # Windows desktop build and packaging
 
-Version: 0.3.0-beta.1. Windows 11 x64 only. Installer and portable ZIP in GitHub Releases.
+Version: 0.4.0-beta.1. Windows 11 x64 only. Installer and portable ZIP in GitHub Releases.
+
+## Automated builds
+
+`.github/workflows/desktop-release.yml` builds the desktop app on GitHub's Windows runners with the same kit as the
+local releases (Qt 6.8.3 `mingw_64`, MinGW GCC 13.1.0, installed with aqtinstall). Each run executes every offline
+test (core, protocol, controls and the desktop QML tests), deploys with windeployqt, captures simulated screenshots
+at 100% and 150% with only the bundled runtime on PATH, builds the Inno Setup installer, silently installs it,
+hash-compares every installed file, launches the installed app offline and uninstalls it.
+
+Pushes to `main` and manual runs upload the results as a workflow artifact. Pushing a tag such as `v0.4.0-beta.1`
+that matches the version in `packaging/windows/headset-desk.iss`, `CMakeLists.txt`, `main.cpp` and `windows.rc`
+publishes a prerelease with the installer, portable ZIP, source ZIP, validation ZIP, the unchanged Qt 6.8.3
+corresponding-source archive and `CHECKSUMS.txt`, using `docs/releases/<tag>.md` as notes. Runtime notices
+live in `packaging/windows/notices/` and `START-HERE.txt.in`.
 
 ## Build
 

@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     QElapsedTimer startup; startup.start();
     QApplication app(argc, argv);
     app.setApplicationName("Headset Desk"); app.setOrganizationName("HeadsetDesk");
-    app.setApplicationVersion("0.3.0-beta.1");
+    app.setApplicationVersion("0.4.0-beta.1");
     app.setQuitOnLastWindowClosed(false);
     QCommandLineParser parser;
     parser.setApplicationDescription("Headset Desk — Windows headphone controls");

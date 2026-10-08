@@ -1,0 +1,201 @@
+name: Desktop app build and release
+
+# Builds the Qt desktop app with the same kit as the published betas
+# (Qt 6.8.3 mingw_64 + MinGW GCC 13.1.0), runs every offline test, packages the
+# portable ZIP and per-user installer, and on a v*-beta / v*-rc tag publishes a
+# GitHub prerelease. Pushes to main and manual runs build and upload artifacts only.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*-beta.*', 'v*-rc.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QT_VERSION: 6.8.3
+  QT_ROOT: C:\Qt
+
+jobs:
+  desktop:
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          $cmake = Get-Content CMakeLists.txt -Raw
+          $iss = Get-Content packaging/windows/headset-desk.iss -Raw
+          if ($iss -notmatch '#define AppVersion "([^"]+)"') { throw 'AppVersion missing' }
+          $version = $Matches[1]
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match installer version $version"
+          }
+          $base = ($version -split '-')[0]
+          if ($cmake -notmatch "VERSION $([regex]::Escape($base))") { throw 'CMake version mismatch' }
+          if ((Get-Content apps/desktop/main.cpp -Raw) -notmatch [regex]::Escape("`"$version`"")) { throw 'main.cpp version mismatch' }
+          if ((Get-Content apps/desktop/resources/windows.rc -Raw) -notmatch [regex]::Escape($version)) { throw 'windows.rc version mismatch' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "name=headset-desk-v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Install Qt 6.8.3 mingw_64 and MinGW 13.1.0
+        run: |
+          python -m pip install --disable-pip-version-check "aqtinstall>=3.1,<4" ninja
+          python -m aqt install-qt windows desktop $env:QT_VERSION win64_mingw -O $env:QT_ROOT
+          python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 -O $env:QT_ROOT
+          $qt = Join-Path $env:QT_ROOT "$env:QT_VERSION\mingw_64"
+          $gcc = Join-Path $env:QT_ROOT 'Tools\mingw1310_64\bin'
+          if (-not (Test-Path "$qt\bin\windeployqt.exe")) { throw 'Qt kit missing' }
+          if (-not (Test-Path "$gcc\g++.exe")) { throw 'MinGW missing' }
+          & "$gcc\g++.exe" --version
+          "QT_KIT=$qt" >> $env:GITHUB_ENV
+          "$gcc" >> $env:GITHUB_PATH
+          "$qt\bin" >> $env:GITHUB_PATH
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          -DHEADSET_DESK_BUILD_DESKTOP=ON "-DCMAKE_PREFIX_PATH=$env:QT_KIT"
+          -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+
+      - name: Build
+        run: cmake --build build --parallel 4
+
+      - name: Offline tests (core, protocol, controls, desktop QML)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: |
+          New-Item -ItemType Directory -Force out/validation/screenshots | Out-Null
+          $env:HEADSET_DESK_CAPTURE_DIR = (Resolve-Path out/validation/screenshots).Path
+          ctest --test-dir build --output-on-failure --output-junit (Join-Path (Resolve-Path out/validation) 'tests.xml')
+          if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
+
+      - name: Deploy runtime
+        run: |
+          $name = '${{ steps.version.outputs.name }}-windows-x64'
+          $stage = Join-Path (Resolve-Path out) $name
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item build/bin/headset-desk.exe $stage
+          & windeployqt --release --qmldir apps/desktop/qml --no-translations --no-opengl-sw `
+            --no-system-d3d-compiler --skip-plugin-types designer,qmltooling (Join-Path $stage 'headset-desk.exe')
+          if ($LASTEXITCODE -ne 0) { throw 'windeployqt failed' }
+          "[Paths]`nPrefix=.`nPlugins=.`nQmlImports=qml`n" | Set-Content -NoNewline -Encoding ascii (Join-Path $stage 'qt.conf')
+          $licenses = Join-Path $stage 'licenses'
+          Copy-Item -Recurse packaging/windows/notices $licenses
+          $notice = Join-Path $licenses 'RUNTIME-NOTICES.md.in'
+          (Get-Content $notice -Raw).Replace('@VERSION@', '${{ steps.version.outputs.version }}') |
+            Set-Content -Encoding utf8 (Join-Path $licenses 'RUNTIME-NOTICES.md')
+          Remove-Item $notice
+          Copy-Item LICENSE (Join-Path $licenses 'Headset-Desk-MIT.txt')
+          (Get-Content packaging/windows/START-HERE.txt.in -Raw).Replace('@VERSION@', '${{ steps.version.outputs.version }}') |
+            Set-Content -Encoding ascii (Join-Path $stage 'START-HERE.txt')
+          "STAGE=$stage" >> $env:GITHUB_ENV
+
+      - name: Portable checks (bundled runtime only)
+        run: |
+          $exe = Join-Path $env:STAGE 'headset-desk.exe'
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          $shots = (Resolve-Path out/validation/screenshots).Path
+          $runs = @(
+            @{ sim='xm5'; theme='light'; scale='1'; file='light-100' },
+            @{ sim='xm5'; theme='dark'; scale='1'; file='dark-100' },
+            @{ sim='xm5'; theme='light'; scale='1.5'; file='light-150' },
+            @{ sim='xm5'; theme='dark'; scale='1.5'; file='dark-150' },
+            @{ sim='ch720n'; theme='dark'; scale='1'; file='ch720n-dark-100' },
+            @{ sim='idle'; theme='light'; scale='1'; file='idle-light-100' }
+          )
+          foreach ($r in $runs) {
+            $env:QT_SCALE_FACTOR = $r.scale
+            $png = Join-Path $shots "$($r.file).png"; $json = Join-Path $shots "$($r.file).json"
+            $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList @('--simulate', $r.sim, '--theme', $r.theme,
+              '--capture', $png, '--metrics', $json, '--exit-after-capture')
+            if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "Capture $($r.file) failed with $($p.ExitCode)" }
+          }
+          Remove-Item Env:QT_SCALE_FACTOR
+          # Unknown preview flags must exit before any Bluetooth setup.
+          $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList @('--simulate', 'other')
+          if ($p.ExitCode -ne 2) { throw 'Unknown model was not rejected' }
+          $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList @('--capture', 'x.png')
+          if ($p.ExitCode -ne 2) { throw 'Preview flag without simulation was not rejected' }
+          Get-ChildItem $shots -Filter *.json | ForEach-Object { "$($_.BaseName): $(Get-Content $_ -Raw)" }
+
+      - name: Package portable ZIP, installer and source
+        run: |
+          $name = '${{ steps.version.outputs.name }}'
+          $dist = New-Item -ItemType Directory -Force out/dist
+          Compress-Archive -Path $env:STAGE -DestinationPath "$dist/$name-windows-x64.zip"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc "/DStageDir=$env:STAGE" "/DOutputDir=$($dist.FullName)" "/DAppVersion=${{ steps.version.outputs.version }}" packaging/windows/headset-desk.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+          git archive --format=zip --prefix="$name-source/" -o "$dist/$name-source.zip" HEAD
+          $bytes = (Get-ChildItem $env:STAGE -Recurse -File | Measure-Object Length -Sum).Sum
+          "Deployed folder: $bytes bytes ($([math]::Round($bytes / 1MB, 2)) MiB)" | Tee-Object out/validation/size.txt
+
+      - name: Installer check (silent per-user install, launch, uninstall)
+        run: |
+          $setup = Get-ChildItem out/dist -Filter '*-setup.exe' | Select-Object -First 1
+          $dir = Join-Path $env:RUNNER_TEMP 'hd-install'
+          $p = Start-Process $setup.FullName -PassThru -Wait -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$dir", '/NOICONS')
+          if ($p.ExitCode -ne 0) { throw "Install failed $($p.ExitCode)" }
+          $staged = Get-ChildItem $env:STAGE -Recurse -File
+          foreach ($f in $staged) {
+            $rel = $f.FullName.Substring($env:STAGE.Length + 1)
+            $installed = Join-Path $dir $rel
+            if (-not (Test-Path $installed)) { throw "Missing $rel" }
+            if ((Get-FileHash $installed).Hash -ne (Get-FileHash $f.FullName).Hash) { throw "Hash mismatch $rel" }
+          }
+          "Installed files hash-matched: $($staged.Count)" | Tee-Object out/validation/installer.txt
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          $p = Start-Process (Join-Path $dir 'headset-desk.exe') -PassThru -Wait -ArgumentList @('--simulate', 'ch720n', '--metrics', (Join-Path $env:RUNNER_TEMP 'installed.json'), '--exit-after-capture')
+          if ($p.ExitCode -ne 0) { throw "Installed app failed $($p.ExitCode)" }
+          $p = Start-Process (Join-Path $dir 'unins000.exe') -PassThru -Wait -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
+          if ($p.ExitCode -ne 0) { throw "Uninstall failed $($p.ExitCode)" }
+          Start-Sleep -Seconds 3
+          if (Test-Path (Join-Path $dir 'headset-desk.exe')) { throw 'Uninstall left the executable' }
+          'Uninstall removed the app' | Add-Content out/validation/installer.txt
+
+      - name: Validation archive and checksums
+        run: |
+          $name = '${{ steps.version.outputs.name }}'
+          Compress-Archive -Path out/validation/* -DestinationPath "out/dist/$name-validation.zip"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.version.outputs.name }}-windows
+          path: |
+            out/dist/*
+            out/validation/**
+          if-no-files-found: error
+
+      - name: Publish prerelease
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $name = '${{ steps.version.outputs.name }}'
+          # Same Qt 6.8.3 runtime as the previous beta: carry its exact corresponding sources forward.
+          gh release download v0.3.0-beta.1 --pattern '*-qt-runtime-sources.zip' --dir out/qt
+          if ($LASTEXITCODE -ne 0) { throw 'Qt source download failed' }
+          Move-Item (Get-ChildItem out/qt/*.zip | Select-Object -First 1).FullName "out/dist/$name-qt-runtime-sources.zip"
+          Push-Location out/dist
+          Get-ChildItem -File | Where-Object Name -ne 'CHECKSUMS.txt' | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content -Encoding ascii CHECKSUMS.txt
+          Get-Content CHECKSUMS.txt
+          Pop-Location
+          $notes = "docs/releases/$env:GITHUB_REF_NAME.md"
+          if (-not (Test-Path $notes)) { throw "Release notes $notes missing" }
+          $title = (Get-Content $notes -TotalCount 1).TrimStart('#', ' ')
+          gh release create $env:GITHUB_REF_NAME (Get-ChildItem out/dist -File).FullName --prerelease --title $title --notes-file $notes --verify-tag
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
