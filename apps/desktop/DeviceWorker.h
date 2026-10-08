@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QTimer>
 #include <QStringList>
+#include <QVariantList>
+#include <functional>
 
 Q_DECLARE_METATYPE(headsetdesk::Snapshot)
 
@@ -17,6 +19,9 @@ public slots:
     void disconnectDevice();
     void refresh(bool batteryOnly = false);
     void rescan();
+    void enableControls(bool enabled);
+    void setNoise(int mode, int level);
+    void setEqualizer(int bass, QVariantList bands);
     void shutdown();
 signals:
     void devicesChanged(QStringList names, int selected);
@@ -28,6 +33,7 @@ private:
     void discover();
     void open(const headsetdesk::Candidate& target, bool automatic);
     void scheduleReconnect();
+    void runCommand(const std::function<void()>& command, QString success);
     QString simulation_;
     std::vector<headsetdesk::Candidate> candidates_;
     std::optional<headsetdesk::Candidate> target_;

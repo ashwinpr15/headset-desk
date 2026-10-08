@@ -34,6 +34,7 @@ void ReadOnlyTransport::connect(const sony::transport::DeviceAddress& address) {
 }
 
 void ReadOnlyTransport::disconnect() noexcept {
+    revokeSetting();
     serviceVerified_ = false;
     inner_->disconnect();
 }
@@ -49,7 +50,7 @@ std::size_t ReadOnlyTransport::send(std::span<const std::byte> bytes) {
     if (frame.sequence > 1) throw SonyException(SonyErrorCode::ProtocolViolation, "Invalid sequence bit");
     bool permitted = frame.type == sony::protocol::DataType::Ack && frame.payload.empty();
     // These exact GET payloads come from ProtocolV2.cpp. No arbitrary raw
-    // commands, setters, earbud probes, power controls, or firmware updates.
+    // commands, earbud probes, power controls, or firmware updates.
     constexpr std::array<std::array<std::uint8_t, 2>, 6> queries{{
         {{0x00, 0x00}}, {{0x22, 0x00}}, {{0x04, 0x02}},
         {{0x12, 0x02}}, {{0x66, 0x17}}, {{0x56, 0x00}}
@@ -59,8 +60,15 @@ std::size_t ReadOnlyTransport::send(std::span<const std::byte> bytes) {
             return std::equal(query.begin(), query.end(), frame.payload.begin());
         });
     }
+    if (!permitted && frame.type == sony::protocol::DataType::DataMdr) {
+        std::lock_guard lock(permitMutex_);
+        if (settingPermit_ && frame.payload == *settingPermit_) {
+            permitted = true;
+            settingPermit_.reset(); // Consumed before sending: no automatic write replay.
+        }
+    }
     if (!permitted) throw SonyException(SonyErrorCode::Unsupported,
-        "This diagnostic build permits only the reviewed V2 read queries and protocol ACKs.");
+        "This command is not permitted by the Headset Desk transport.");
     if (packets_) packets_("TX", bytes);
     std::size_t written = 0;
     while (written < bytes.size()) {
@@ -70,6 +78,24 @@ std::size_t ReadOnlyTransport::send(std::span<const std::byte> bytes) {
         written += count;
     }
     return written;
+}
+
+void ReadOnlyTransport::permitSetting(std::vector<std::uint8_t> payload) {
+    const bool noise = payload.size() == 7 && payload[0] == 0x68 && payload[1] == 0x17 &&
+        payload[2] == 1 && payload[3] <= 1 && payload[4] <= 1 && payload[5] <= 1 &&
+        payload[6] >= 1 && payload[6] <= 20;
+    const bool eq = payload.size() == 10 && payload[0] == 0x58 && payload[1] == 0 &&
+        payload[2] == 0xa0 && payload[3] == 6 &&
+        std::all_of(payload.begin() + 4, payload.end(), [](auto value) { return value <= 20; });
+    if (!isConnected() || (!noise && !eq))
+        throw SonyException(SonyErrorCode::Unsupported, "Invalid setting command.");
+    std::lock_guard lock(permitMutex_);
+    settingPermit_ = std::move(payload);
+}
+
+void ReadOnlyTransport::revokeSetting() noexcept {
+    std::lock_guard lock(permitMutex_);
+    settingPermit_.reset();
 }
 
 std::size_t ReadOnlyTransport::receive(std::span<std::byte> buffer) {

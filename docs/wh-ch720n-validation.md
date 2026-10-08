@@ -1,6 +1,8 @@
+> **v0.3.0 beta policy:** The capture results below are the historical read-only baseline. The desktop now offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. Physical write confidence remains UNKNOWN on both models. The internal diagnostic target remains strictly read-only. No new physical evidence is implied.
+
 # WH-CH720N validation record
 
-Status: **Observed reads hardware verified; all writes disabled**. Returned firmware: 1.1.4. OS: Windows 11 25H2 build 26200.9550. Native Winsock Bluetooth Classic RFCOMM/V2. Physical capture: `tests/fixtures/ch720n-readonly.txt`, reviewed 2026-10-07. The user confirmed the displayed values. No setting write was sent.
+Captured-session status: **Observed reads hardware verified; writes were disabled**. Returned firmware: 1.1.4. OS: Windows 11 25H2 build 26200.9550. Native Winsock Bluetooth Classic RFCOMM/V2. Physical capture: `tests/fixtures/ch720n-readonly.txt`, reviewed 2026-10-07. The user confirmed the displayed values. No setting write was sent.
 
 | Feature | Read confidence | Evidence | Writes |
 |---|---|---|---|

@@ -1,6 +1,6 @@
-# Local read-only desktop preview
+# Windows desktop build and packaging
 
-Version: 0.2.0-preview.1. Windows 11 x64 only. Local build, not published.
+Version: 0.3.0-beta.1. Windows 11 x64 only. Installer and portable ZIP in GitHub Releases.
 
 ## Build
 
@@ -21,7 +21,7 @@ QSystemTrayIcon and its context menu, hence QApplication. Test builds also need 
 Catch2 3.8.1 is fetched with a pinned hash unless supplied locally.
 
 The default `HEADSET_DESK_BUILD_DESKTOP=OFF` preserves the core and internal CLI build.
-The existing public CI builds those targets only; it has not been changed remotely.
+The existing public CI builds those targets only; it also covers the experimental core setting paths.
 
 ## Local deployment
 
@@ -32,7 +32,7 @@ windeployqt --release --qmldir apps/desktop/qml --no-translations --no-opengl-sw
 ```
 
 Windows 11 provides the system D3D compiler. Retain deployed Qt/QML plugins and
-matching MinGW runtime DLLs. This preview uses Qt's deployment output with all
+matching MinGW runtime DLLs. This application uses Qt's deployment output with all
 discovered control styles; the selected style is FluentWinUI3, fallback Fusion.
 Do not delete runtime files based on filename guesses. Include application and
 upstream MIT licenses, Qt LGPLv3/GPLv3 texts, Qt third-party notices and GCC/MinGW
@@ -61,8 +61,9 @@ The app is unsigned, and Windows SmartScreen may display a warning.
 - Local single-instance pipe accepts only `OPEN`; no raw protocol or remote command interface.
 - Remember the last successful real device in per-user Windows settings. No sign-in launch,
   service, cloud account, analytics or updater is installed.
-- All setting controls are disabled. The same transport allowlist blocks imported setters.
-  Noise/EQ write confidence is Unknown for both physical models.
+- Controls start disabled. Explicit per-connection experimental opt-in permits only validated
+  noise/EQ settings. Each setting requires ACK plus fresh readback. Failure disables controls;
+  no writes are retried or replayed. Hardware write confidence remains Unknown on both models.
 
 ## Offline review
 
@@ -93,3 +94,19 @@ replays remain in place. New real-device GUI/reconnect/long-session validation i
 needed; simulation does not promote hardware confidence.
 
 Official style reference: https://doc.qt.io/qt-6.8/qtquickcontrols-fluentwinui3.html
+
+## Installer
+
+Deploy the complete runtime folder and licenses first. Compile with Inno Setup 7.1.0:
+
+```powershell
+ISCC /DStageDir=C:/release/headset-desk-v0.3.0-beta.1-windows-x64 /DOutputDir=C:/release packaging/windows/headset-desk.iss
+```
+
+The installer is per-user, requires Windows build 22000 or newer and x64 compatibility,
+includes all staged runtime files and an uninstaller, and creates a Start menu shortcut.
+An optional desktop shortcut is unchecked. Launch after install is unchecked and skipped
+for silent installation. No network or startup registration is required. Quit the app
+from its tray before installing an update; the installer checks the running-app mutex.
+Publish the setup EXE, complete portable ZIP, application source, exact Qt runtime sources
+and SHA-256 checksums under the same version tag. The binary is unsigned.

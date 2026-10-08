@@ -20,6 +20,10 @@
 #include <iostream>
 
 namespace {
+struct InstallLock {
+    HANDLE handle{};
+    ~InstallLock() { if (handle) CloseHandle(handle); }
+};
 QIcon headsetIcon() {
     QIcon icon;
     for (int size : {16, 24, 32, 48, 64, 128, 256}) {
@@ -41,10 +45,10 @@ int main(int argc, char* argv[]) {
     QElapsedTimer startup; startup.start();
     QApplication app(argc, argv);
     app.setApplicationName("Headset Desk"); app.setOrganizationName("HeadsetDesk");
-    app.setApplicationVersion("0.2.0-preview.1");
+    app.setApplicationVersion("0.3.0-beta.1");
     app.setQuitOnLastWindowClosed(false);
     QCommandLineParser parser;
-    parser.setApplicationDescription("Headset Desk — read-only Windows desktop preview");
+    parser.setApplicationDescription("Headset Desk — Windows headphone controls");
     parser.addHelpOption(); parser.addVersionOption();
     parser.addOption({"simulate", "Internal offline preview: xm5, ch720n or idle.", "model"});
     parser.addOption({"theme", "Internal preview theme: light or dark.", "theme"});
@@ -68,6 +72,8 @@ int main(int argc, char* argv[]) {
         }
         return instance.forwarded() ? 0 : 3;
     }
+    InstallLock installLock;
+    if (simulation.isEmpty()) installLock.handle = CreateMutexW(nullptr, FALSE, L"Local\\HeadsetDeskRunningV1");
     if (!theme.isEmpty()) app.styleHints()->setColorScheme(theme == "dark" ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
     QQuickStyle::setStyle("FluentWinUI3");
     QQuickStyle::setFallbackStyle("Fusion");

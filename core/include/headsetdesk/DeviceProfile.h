@@ -18,8 +18,8 @@ struct Capability {
     Evidence evidence;
     std::string_view reference;
     std::string_view testedFirmware;
-    // Future write evidence is independent of a successful read. Phase 2 has
-    // no write API and never enables a setter, including on the XM5.
+    // Hardware write evidence is independent of read evidence and runtime
+    // experimental opt-in. The default policy never enables setters.
     Confidence writeConfidence;
     bool writesEnabled{false};
 };

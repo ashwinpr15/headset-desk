@@ -1,6 +1,7 @@
 #include "headsetdesk/DeviceSession.h"
 #include "sony/transport/SonyError.h"
 #include <algorithm>
+#include <thread>
 
 namespace headsetdesk {
 DeviceSession::DeviceSession(std::unique_ptr<ReadOnlyTransport> transport) : transport_(std::move(transport)) {
@@ -9,6 +10,7 @@ DeviceSession::DeviceSession(std::unique_ptr<ReadOnlyTransport> transport) : tra
 DeviceSession::~DeviceSession() { disconnect(); }
 
 void DeviceSession::clearTelemetry() {
+    state_.controlsEnabled = false;
     state_.battery.unknown(); state_.charging.unknown(); state_.firmware.unknown();
     state_.activeCodec.unknown(); state_.noise.unknown(); state_.equalizer.unknown();
 }
@@ -71,6 +73,7 @@ void DeviceSession::refresh() {
     {
         std::lock_guard state(stateMutex_);
         next.model = state_.model;
+        next.controlsEnabled = state_.controlsEnabled;
     }
     next.connection = ConnectionState::Connected;
     try {
@@ -110,13 +113,96 @@ void DeviceSession::refresh() {
         next.equalizer.known(std::move(eq));
     } catch (const std::exception& error) { next.equalizer.unknown(error.what()); }
     if (!session_->isConnected()) {
+        next.controlsEnabled = false;
         next.connection = ConnectionState::Unavailable;
         next.battery.unknown(); next.charging.unknown(); next.firmware.unknown();
         next.activeCodec.unknown(); next.noise.unknown(); next.equalizer.unknown();
         next.connectionError = "The headphone control connection was lost.";
     }
+    if (!next.noise.value || !next.equalizer.value || !next.firmware.value) next.controlsEnabled = false;
     std::lock_guard state(stateMutex_);
     state_ = std::move(next);
+}
+
+void DeviceSession::enableControls(bool enabled) {
+    std::lock_guard operation(operationMutex_);
+    const auto snapshot = state();
+    if (enabled && (!session_ || !session_->isConnected() || !snapshot.model ||
+        !snapshot.noise.value || !snapshot.equalizer.value || !snapshot.firmware.value))
+        throw sony::SonyException(sony::SonyErrorCode::Unsupported, "Refresh the headphone readings before enabling controls.");
+    std::lock_guard state(stateMutex_);
+    state_.controlsEnabled = enabled;
+}
+
+Snapshot DeviceSession::requireControls() const {
+    auto snapshot = state();
+    if (!session_ || !session_->isConnected() || !snapshot.controlsEnabled || !snapshot.model)
+        throw sony::SonyException(sony::SonyErrorCode::Unsupported, "Setting controls are disabled for this session.");
+    return snapshot;
+}
+
+void DeviceSession::commandFailed() {
+    transport_->revokeSetting();
+    std::lock_guard state(stateMutex_);
+    state_.controlsEnabled = false;
+}
+
+void DeviceSession::setNoise(sony::protocol::NoiseControlMode mode, int ambientLevel) {
+    std::lock_guard operation(operationMutex_);
+    const auto snapshot = requireControls();
+    using sony::protocol::NoiseControlMode;
+    if (!snapshot.noise.value || (mode != NoiseControlMode::Off && mode != NoiseControlMode::NoiseCancelling && mode != NoiseControlMode::Ambient))
+        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "Invalid noise-control request.");
+    auto desired = *snapshot.noise.value;
+    desired.mode = mode;
+    desired.ambientLevel = ambientLevel == -1 ? std::max(1, desired.ambientLevel) : ambientLevel;
+    if (desired.ambientLevel < 1 || desired.ambientLevel > 20)
+        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "Ambient level must be 1–20.");
+    std::vector<std::uint8_t> payload{0x68, 0x17, 1,
+        static_cast<std::uint8_t>(mode != NoiseControlMode::Off),
+        static_cast<std::uint8_t>(mode == NoiseControlMode::Ambient),
+        static_cast<std::uint8_t>(desired.focusOnVoice), static_cast<std::uint8_t>(desired.ambientLevel)};
+    try {
+        transport_->permitSetting(std::move(payload));
+        protocol_->setNoiseControl(desired); // Waits for ACK; never retries a setting.
+        transport_->revokeSetting();
+        for (int attempt = 0; attempt < 3; ++attempt) {
+            const auto actual = protocol_->getNoiseControl();
+            {
+                std::lock_guard state(stateMutex_);
+                state_.noise.known(actual);
+            }
+            if (actual.mode == mode && (mode != NoiseControlMode::Ambient || actual.ambientLevel == desired.ambientLevel)) return;
+            if (attempt < 2) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "The headphones did not confirm the requested noise setting.");
+    } catch (...) { commandFailed(); throw; }
+}
+
+void DeviceSession::setEqualizer(int clearBass, const std::vector<int>& bands) {
+    std::lock_guard operation(operationMutex_);
+    const auto snapshot = requireControls();
+    if (!snapshot.equalizer.value || bands.size() != 5 || clearBass < -10 || clearBass > 10 ||
+        !std::all_of(bands.begin(), bands.end(), [](int value) { return value >= -10 && value <= 10; }))
+        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "EQ needs five bands and Clear Bass, each from -10 to +10.");
+    std::vector<std::uint8_t> payload{0x58, 0, 0xa0, 6, static_cast<std::uint8_t>(clearBass + 10)};
+    for (int value : bands) payload.push_back(static_cast<std::uint8_t>(value + 10));
+    try {
+        transport_->permitSetting(std::move(payload));
+        protocol_->setEqualizerCustom(clearBass, bands);
+        transport_->revokeSetting();
+        for (int attempt = 0; attempt < 3; ++attempt) {
+            auto actual = protocol_->getEqualizer();
+            const bool matches = actual.clearBass == clearBass && actual.bands == bands;
+            {
+                std::lock_guard state(stateMutex_);
+                state_.equalizer.known(std::move(actual));
+            }
+            if (matches) return;
+            if (attempt < 2) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "The headphones did not confirm the requested EQ values.");
+    } catch (...) { commandFailed(); throw; }
 }
 
 Snapshot DeviceSession::state() const {

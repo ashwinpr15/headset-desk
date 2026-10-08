@@ -32,6 +32,7 @@ template<class T> struct Telemetry {
 };
 
 struct Snapshot {
+    bool controlsEnabled{false}; // Explicit experimental opt-in, cleared on disconnect/loss.
     ConnectionState connection{ConnectionState::Disconnected};
     std::optional<Model> model; // Paired Windows name, not a live Sony identity response.
     Telemetry<int> battery;
@@ -43,8 +44,9 @@ struct Snapshot {
     std::string connectionError;
 };
 
-// A synchronous core for the future GUI worker and internal CLI. Calls are
-// serialized; state() returns a value copy. No write or raw packet API.
+// Synchronous core shared by the GUI worker and internal CLI. Calls are
+// serialized; state() returns a copy. Settings require session opt-in and
+// exact validated payloads. No public raw packet API.
 class DeviceSession {
 public:
     explicit DeviceSession(std::unique_ptr<ReadOnlyTransport> transport);
@@ -55,11 +57,16 @@ public:
     void disconnect();
     void refresh();
     void refreshBattery();
+    void enableControls(bool enabled);
+    void setNoise(sony::protocol::NoiseControlMode mode, int ambientLevel = -1);
+    void setEqualizer(int clearBass, const std::vector<int>& bands);
     Snapshot state() const;
 
 private:
     void clearTelemetry();
     void resetLink();
+    Snapshot requireControls() const;
+    void commandFailed();
     mutable std::mutex operationMutex_;
     mutable std::mutex stateMutex_;
     std::unique_ptr<ReadOnlyTransport> transport_;

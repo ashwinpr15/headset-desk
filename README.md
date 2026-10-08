@@ -1,87 +1,70 @@
 # Headset Desk
 
-Windows 11 utility in development for **WH-1000XM5** and **WH-CH720N**. This local branch adds a read-only desktop preview with a window and system tray. The public prerelease remains the earlier internal diagnostic tool; this desktop build has not been published.
+A Windows 11 desktop app for **Sony WH-1000XM5** and **WH-CH720N**: battery and firmware, noise control, five-band EQ and Clear Bass, with a system tray.
 
 [![Windows build](https://github.com/ashwinpr15/headset-desk/actions/workflows/windows.yml/badge.svg)](https://github.com/ashwinpr15/headset-desk/actions/workflows/windows.yml)
 
-[Diagnostic downloads](https://github.com/ashwinpr15/headset-desk/releases) · [Hardware evidence](docs/hardware-validation.md) · [Architecture](docs/architecture.md)
+## Download for Windows
 
-The desktop preview displays model, battery, charging, firmware, reported codec, noise state, five-band EQ and Clear Bass. Setting controls are disabled, and writes are blocked by the core transport on both models. Closing hides the window and keeps the connection alive in the tray; tray Quit disconnects and exits. The window is resizable and scrolls on smaller displays. Sign-in launch is off by default and no startup registration is installed. Editable controls and an installer remain future work.
+**[Download Windows installer](https://github.com/ashwinpr15/headset-desk/releases/download/v0.3.0-beta.1/headset-desk-v0.3.0-beta.1-windows-x64-setup.exe)**
 
-See [desktop build and packaging](docs/desktop-build.md) and [local validation and measurements](docs/desktop-validation.md). Extract the complete portable folder and run `headset-desk.exe`. The preview is unsigned, so Windows SmartScreen may show a warning.
+[Portable ZIP](https://github.com/ashwinpr15/headset-desk/releases/download/v0.3.0-beta.1/headset-desk-v0.3.0-beta.1-windows-x64.zip) · [All versions and release notes](https://github.com/ashwinpr15/headset-desk/releases) · [Report an issue](https://github.com/ashwinpr15/headset-desk/issues)
 
-## What exists
+Current version: **0.3.0-beta.1**. Windows 11, x64. The installer bundles the app and runtime, creates a Start menu shortcut, and supports uninstalling through Windows Settings. It installs for your Windows account without administrator rights. No Qt installation, developer tools, sign-in or internet connection is needed to run the installed app.
 
-- C++20/CMake targets for the reused Sony protocol, native Windows RFCOMM transport, Headset Desk core and internal diagnostic executable.
-- Paired-device enumeration includes disconnected devices and preserves Windows paired/active flags. It uses cached Windows records, with no inquiry or custom pairing.
-- Strict supported-model selection. An unknown or renamed device cannot select V2 by substring or MAC prefix.
-- A V2 service check before queries and a final transport guard that blocks all headset setting writes, including writes from imported protocol setters.
-- Known/Unknown telemetry, with unknown charging distinct from `false` and unknown battery distinct from `0`.
-- Read/write evidence tracked separately. Physical captures confirm the observed reads on XM5 firmware 2.5.1 and CH720N firmware 1.1.4. Successful reads do not enable writes.
-- Offline simulation, protocol regressions and core tests. Test execution never enumerates or connects to real headphones.
-- Qt 6.8.3 Quick UI with FluentWinUI3 controls, a shared light/dark palette, and a native tray icon using Qt Widgets and QApplication.
-- One Bluetooth worker thread, manual refresh, refresh on reopening, and a three-minute battery-only timer. Unclassified headset notifications are not used as feature updates.
-- A local single-instance pipe forwards Open to the first process. It accepts only Open; it exposes no hardware command API.
+This is an **experimental beta**. Reads have been checked on the devices listed below. Setting writes have passed offline checks but **have not been tested on physical headphones by Headset Desk**. Controls start off and must be enabled for each connection. Successful reads do not verify writes.
 
-## Building
+The app and installer are unsigned; Windows SmartScreen may warn about an unrecognized app. Download from this repository's Releases; `CHECKSUMS.txt` accompanies the assets. No firmware updates or power commands are offered.
 
-Requires Windows, a C++20 toolchain, CMake 3.25+ and Ninja or Visual Studio 2022. Qt is not needed for Phase 2. The test build uses Catch2 3.8.1, fetched with a pinned SHA-256; an installed Catch2 3 can also be used.
+## Install and use
 
-From this folder, with a compiler available:
+1. Download the installer, run it, then open **Headset Desk** from Start. Alternatively, extract the **entire** portable ZIP and open `headset-desk.exe` inside its folder.
+2. Pair your headset in Windows Bluetooth settings and turn it on. Close other headset-control tools. The app connects automatically when Windows reports a supported paired headset as active; otherwise choose **Connect**.
+3. Check the readings. To try changing settings, turn on **Controls** in the Noise control card. Changes are experimental on both models. Choose NC, Ambient or Off; Ambient has levels 1–20. Edit the five EQ bands and Clear Bass, then choose **Apply**. **Reset** discards unsent EQ edits.
+
+Every change is sent once and checked with a fresh readback. An ACK alone is insufficient. A timeout, disconnection or mismatch disables controls and reports the problem; no change is replayed. Check Sony's app if a change is uncertain. Disconnecting, switching or reconnecting clears the experimental toggle.
+
+## The app
+
+These screenshots are rendered by the actual Windows app with **simulated data**, not live readings.
+
+<img src="docs/screenshots/light-100.png" alt="Headset Desk light theme, simulated data" width="360"> <img src="docs/screenshots/dark-100.png" alt="Headset Desk dark theme, simulated data" width="360">
+
+- Model, battery percentage, charging state, firmware and headset-reported codec.
+- NC / Ambient / Off; Ambient level 1–20.
+- Five EQ bands: 400 Hz, 1 kHz, 2.5 kHz, 6.3 kHz and 16 kHz, plus Clear Bass. Values −10 to +10; Apply sends custom EQ.
+- Resizable window, Windows light/dark appearance and native tray.
+- Close hides to tray and keeps the link alive. Tray **Quit** exits. Launching a second copy brings forward the first.
+- Refresh on connection, reopening and demand, plus a slow battery timer. One headset session at a time; select the other device, then Connect.
+- No cloud account, analytics, internet updater, Windows service or launch at sign-in.
+
+## Device evidence
+
+| Model | Physical read evidence | Noise / EQ writes |
+|---|---|---|
+| WH-1000XM5 | Firmware 2.5.1; battery 44%, charging false, reported AAC, Off, one EQ state | Experimental opt-in; hardware confidence **UNKNOWN** |
+| WH-CH720N | Firmware 1.1.4; battery 99%, charging false, reported AAC, Off, one EQ state | Experimental opt-in; hardware confidence **UNKNOWN** |
+
+Read evidence covers those captured states only. Charging true, NC/Ambient reads, other firmware, EQ presets/endpoints, GUI operation on hardware and long-session/reconnect behavior still need physical testing. The Off replies differ; successful reads do not establish interchangeable write behavior. Model identity comes from Windows' cached pairing name. The codec is reported by the headset, not measured from Windows audio. Renamed and other models are excluded.
+
+[Hardware captures and limits](docs/hardware-validation.md) · [CH720N evidence](docs/wh-ch720n-validation.md) · [Beta validation](docs/desktop-validation.md) · [Architecture](docs/architecture.md)
+
+## Build from source
+
+Use C++20, CMake 3.25+, Ninja, Qt **6.8.3** `mingw_64`, and its matching MinGW **GCC 13.1.0** kit. Put compiler and Qt `bin` directories on PATH.
 
 ```powershell
-cmake --preset windows-ninja-debug
-cmake --build --preset windows-ninja-debug
-ctest --preset windows-ninja-debug
+cmake -S . -B build-desktop -G Ninja -DCMAKE_BUILD_TYPE=Release -DHEADSET_DESK_BUILD_DESKTOP=ON -DCMAKE_PREFIX_PATH=C:/Qt/6.8.3/mingw_64
+cmake --build build-desktop --parallel 4
+ctest --test-dir build-desktop --output-on-failure
 ```
 
-Visual Studio has equivalent `windows-msvc-debug` presets. [Windows CI](https://github.com/ashwinpr15/headset-desk/actions/workflows/windows.yml) builds with MSVC and runs only offline checks. The locally verified compiler is recorded in [build validation](docs/build-validation.md). To build only diagnostics, use `windows-ninja-diagnostics`. MSVC uses its static runtime; the portable prerelease uses LLVM-MinGW with its C++ runtime linked statically.
+[Build, deploy and package](docs/desktop-build.md). Default CMake builds the core and internal read-only diagnostics without Qt; the CLI is a development tool, not the consumer app. [Diagnostic instructions](docs/hardware-validation.md). Windows CI checks the core, protocol and diagnostics offline; local validation also checks Qt and the installer.
 
-## Internal diagnostics
+## Credits and license
 
-No arguments shows help and opens no Bluetooth connection.
+Based on protocol and Windows transport from [marconvcm/sony-device-center](https://github.com/marconvcm/sony-device-center). Imported files retain upstream MIT notices; [attribution and changes](docs/attribution.md). New Headset Desk code is [MIT licensed](LICENSE).
 
-```powershell
-.\headset-desk-diagnostics.exe --simulate xm5
-.\headset-desk-diagnostics.exe --simulate ch720n
-```
+Qt 6.8.3 is dynamically linked under LGPLv3. Downloads include Qt and other runtime notices. Exact corresponding Qt sources are supplied as a companion release asset; application source is also available. Replacing compatible Qt DLLs/plugins and reverse engineering to debug those replacements is permitted. Preserve notices and source availability when redistributing.
 
-These print **synthetic** data and cannot verify physical device compatibility.
-
-Extract the portable ZIP from Releases and open PowerShell in that folder:
-
-```powershell
-.\headset-desk-diagnostics.exe --devices
-.\headset-desk-diagnostics.exe --device-index N --read-only --dump capture.txt
-```
-
-Replace `N` with the number printed beside the desired headset. Pair normally in Windows first. Use a new capture filename. Follow [the hardware instructions and evidence limits](docs/hardware-validation.md). The CLI remains an internal diagnostic build target; this download is for development and validation.
-
-Example from the reviewed CH720N hardware run:
-
-```text
-Model (paired Windows name): WH-CH720N
-Battery %: 99
-Charging: false
-Firmware: 1.1.4
-Reported active codec: AAC
-Noise control: Off
-EQ: 0 5 7 7 9 Clear Bass -1
-Writes: disabled
-```
-
-## Desktop connection policy
-
-The desktop auto-connects only when Windows reports a supported device both paired and active. Otherwise it stays idle with manual Connect and Refresh list. Paired disconnected headsets remain selectable. If both are active, the last successfully connected device is preferred; absent a preference, XM5 is selected first. Only one session is open at a time. Choosing another headset disconnects the old one; press Connect to open the new one. Reopening requests a full refresh. Link loss triggers at most five retry attempts with increasing delays; manual Disconnect, changing target and Quit cancel retries. The diagnostic CLI still never auto-connects on startup.
-
-## Scope and evidence
-
-Supported profile names are exactly `WH-1000XM5` and `WH-CH720N` (case insensitive). This is a conservative protocol-generation choice; the paired Windows name is not a live Sony identity response. A renamed headset stays idle. Unknown model support can be added through a reviewed profile and independent evidence later.
-
-The user ran read-only diagnostics on both physical headsets and confirmed the returned values. The reviewed packet fixtures and regression tests cover firmware 2.5.1 on XM5 and 1.1.4 on CH720N, with noise control Off and charging false. Charging true, other noise states, all EQ presets/range endpoints and all setting writes remain untested by Headset Desk. AAC is the headset-reported value; independent confirmation of Windows' negotiated audio codec remains separate. Supported codec lists are static specs.
-
-See [architecture](docs/architecture.md), [upstream changes](docs/upstream-changes.md), [CH720N validation](docs/wh-ch720n-validation.md) and [attribution](docs/attribution.md).
-
-## License
-
-New Headset Desk code is MIT licensed. Imported code retains the exact upstream [MIT notice](vendor/sony-device-center/LICENSE). No Sony artwork or marketing assets were imported. Headset Desk is an independent project and is not affiliated with Sony. Retain the included license and runtime notices when distributing the portable ZIP.
+Headset Desk is independent and not affiliated with Sony. No Sony artwork is included.

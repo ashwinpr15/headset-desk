@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(HeadsetDesk VERSION 0.2.0 LANGUAGES CXX)
+project(HeadsetDesk VERSION 0.3.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Headset Desk v1 targets Windows 11 only.")
@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(HEADSET_DESK_BUILD_DESKTOP "Build the Qt desktop application" OFF)
 if(HEADSET_DESK_BUILD_DESKTOP)
+    enable_language(RC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 else()
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -50,10 +51,12 @@ if(HEADSET_DESK_BUILD_DESKTOP)
     find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Widgets Network)
     qt_standard_project_setup(REQUIRES 6.8)
     qt_add_executable(headset-desk WIN32
+        apps/desktop/resources/windows.rc
         apps/desktop/main.cpp apps/desktop/DeviceController.cpp
         apps/desktop/DeviceController.h apps/desktop/DeviceWorker.cpp
         apps/desktop/DeviceWorker.h apps/desktop/SingleInstance.cpp
         apps/desktop/SingleInstance.h)
+    target_include_directories(headset-desk PRIVATE apps/desktop/resources)
     target_link_libraries(headset-desk PRIVATE headset-desk-core
         Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::Network psapi)
     set_source_files_properties(apps/desktop/qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
@@ -102,7 +105,7 @@ if(BUILD_TESTING)
         "${UPSTREAM}/tests/transport/SonyDeviceFilterTests.cpp"
     )
     target_link_libraries(upstream-protocol-tests PRIVATE sony-protocol Catch2::Catch2WithMain)
-    add_executable(headset-desk-core-tests tests/CoreTests.cpp tests/ProtocolSafetyTests.cpp tests/HardwareCaptureTests.cpp)
+    add_executable(headset-desk-core-tests tests/CoreTests.cpp tests/ProtocolSafetyTests.cpp tests/HardwareCaptureTests.cpp tests/ControlTests.cpp)
     target_compile_definitions(headset-desk-core-tests PRIVATE HEADSET_DESK_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
     target_include_directories(headset-desk-core-tests PRIVATE "${UPSTREAM}/Client" "${UPSTREAM}/Client/windows" "${UPSTREAM}/tests/protocol")
     target_link_libraries(headset-desk-core-tests PRIVATE headset-desk-core Catch2::Catch2WithMain)

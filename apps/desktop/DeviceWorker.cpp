@@ -130,6 +130,45 @@ void DeviceWorker::scheduleReconnect() {
     reconnectTimer_->start(std::min(30000, 1000 * (1 << attempts_++)));
 }
 
+void DeviceWorker::runCommand(const std::function<void()>& command, QString success) {
+    if (!session_ || stopping_) { emit busyChanged(false); return; }
+    emit busyChanged(true);
+    try {
+        command();
+        emit messageChanged(std::move(success));
+    } catch (const std::exception&) {
+        session_->enableControls(false);
+        session_->refresh(); // Show actual state after an uncertain write; never replay it.
+        emit messageChanged("Couldn’t confirm the change. Controls disabled; check the readings before trying again.");
+    }
+    const auto snapshot = session_->state();
+    emit snapshotChanged(snapshot, false);
+    if (snapshot.connection != ConnectionState::Connected) {
+        batteryTimer_->stop();
+        scheduleReconnect();
+    }
+    emit busyChanged(false);
+}
+
+void DeviceWorker::enableControls(bool enabled) {
+    runCommand([this, enabled] {
+        if (enabled) session_->refresh();
+        session_->enableControls(enabled);
+    }, enabled ? "Experimental controls enabled for this connection." : QString{});
+}
+
+void DeviceWorker::setNoise(int mode, int level) {
+    runCommand([this, mode, level] {
+        session_->setNoise(static_cast<sony::protocol::NoiseControlMode>(mode), level);
+    }, "Noise setting confirmed by headphones.");
+}
+
+void DeviceWorker::setEqualizer(int bass, QVariantList values) {
+    std::vector<int> bands;
+    for (const auto& value : values) bands.push_back(value.toInt());
+    runCommand([this, bass, bands] { session_->setEqualizer(bass, bands); }, "EQ confirmed by headphones.");
+}
+
 void DeviceWorker::rescan() {
     if (stopping_) return;
     emit busyChanged(true);

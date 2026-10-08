@@ -1,5 +1,6 @@
 #include "DeviceController.h"
 #include <QDateTime>
+#include <cmath>
 
 using namespace headsetdesk;
 namespace {
@@ -46,6 +47,8 @@ void DeviceController::apply(const Snapshot& snapshot, bool fullRefresh) {
     QVariantList bands;
     for (int n = 0; n < 5; ++n) bands << (snapshot.equalizer.value ? QVariant(snapshot.equalizer.value->bands.at(n)) : QVariant{});
     state_ = {{"connected", connected}, {"status", status},
+        {"controlsEnabled", connected && snapshot.controlsEnabled},
+        {"canEnableControls", connected && snapshot.noise.value.has_value() && snapshot.equalizer.value.has_value() && snapshot.firmware.value.has_value()},
         {"model", snapshot.model ? QString::fromUtf8(profileFor(*snapshot.model).name.data()) : QString("Your headphones")},
         {"battery", snapshot.battery.value ? QString::number(*snapshot.battery.value) + "%" : "—"},
         {"batteryError", errorOf(snapshot.battery)},
@@ -89,4 +92,26 @@ void DeviceController::quit() {
     if (quitting_) return;
     quitting_ = true; busy_ = true; message_ = "Closing the connection…"; emit changed();
     QMetaObject::invokeMethod(worker_, &DeviceWorker::shutdown, Qt::QueuedConnection);
+}
+
+void DeviceController::enableControls(bool enabled) {
+    if (busy_ || quitting_ || !state_.value("connected").toBool() ||
+        (enabled && !state_.value("canEnableControls").toBool())) return;
+    busy_ = true; emit changed();
+    QMetaObject::invokeMethod(worker_, [worker = worker_, enabled] { worker->enableControls(enabled); }, Qt::QueuedConnection);
+}
+void DeviceController::setNoise(int mode, int level) {
+    if (busy_ || quitting_ || !state_.value("controlsEnabled").toBool() || mode < 0 || mode > 2 ||
+        (level != -1 && (level < 1 || level > 20))) return;
+    busy_ = true; emit changed();
+    QMetaObject::invokeMethod(worker_, [worker = worker_, mode, level] { worker->setNoise(mode, level); }, Qt::QueuedConnection);
+}
+void DeviceController::applyEqualizer(int bass, QVariantList bands) {
+    if (busy_ || quitting_ || !state_.value("controlsEnabled").toBool() || bass < -10 || bass > 10 || bands.size() != 5) return;
+    for (const auto& value : bands) {
+        bool ok = false; const double number = value.toDouble(&ok);
+        if (!ok || !std::isfinite(number) || number != std::round(number) || number < -10 || number > 10) return;
+    }
+    busy_ = true; emit changed();
+    QMetaObject::invokeMethod(worker_, [worker = worker_, bass, bands] { worker->setEqualizer(bass, bands); }, Qt::QueuedConnection);
 }

@@ -18,6 +18,28 @@ ApplicationWindow {
     palette.buttonText: appColors.text
     palette.highlight: appColors.accent
     readonly property var telemetry: device.state
+    readonly property bool controlsActive: telemetry.controlsEnabled && !device.busy
+    property var eqDraft: [0, 0, 0, 0, 0]
+    property int bassDraft: 0
+    property string confirmedEq: ""
+    readonly property bool eqDirty: telemetry.eqKnown && (JSON.stringify(eqDraft) !== JSON.stringify(telemetry.bands) || bassDraft !== telemetry.bass)
+    function resetEq() {
+        eqDraft = telemetry.eqKnown ? telemetry.bands.slice() : [0, 0, 0, 0, 0]
+        bassDraft = telemetry.eqKnown ? telemetry.bass : 0
+    }
+    function editBand(index, value) { const draft = eqDraft.slice(); draft[index] = Math.round(value); eqDraft = draft }
+    Connections {
+        target: device
+        function onChanged() {
+            if (!device.busy) {
+                const signature = JSON.stringify(telemetry.bands) + ":" + telemetry.bass + ":" + telemetry.controlsEnabled + ":" + telemetry.connected
+                if (signature !== confirmedEq) { confirmedEq = signature; resetEq() }
+            }
+            if (!window.controlsActive) ambientCommit.stop()
+        }
+    }
+    Component.onCompleted: resetEq()
+    Timer { id: ambientCommit; interval: 250; onTriggered: { if (window.controlsActive && telemetry.noiseMode === 2) device.setNoise(2, Math.round(ambientSlider.value)) } }
     property double currentTime: Date.now()
     readonly property int ageMinutes: Math.max(0, Math.floor((currentTime - telemetry.updatedEpoch) / 60000))
     readonly property string updateAge: ageMinutes === 0 ? "Updated just now" : "Updated " + ageMinutes + " min ago"
@@ -42,7 +64,7 @@ ApplicationWindow {
             RowLayout {
                 Layout.fillWidth: true; Layout.leftMargin: 20; Layout.rightMargin: 20
                 Label { text: "Headset Desk"; font.pixelSize: 20; font.weight: Font.DemiBold; color: appColors.text; Layout.fillWidth: true }
-                Label { text: "READ ONLY"; font.pixelSize: 10; font.letterSpacing: 1; color: appColors.muted }
+                Label { text: telemetry.controlsEnabled ? "EXPERIMENTAL" : "BETA · READ ONLY"; font.pixelSize: 10; font.letterSpacing: 1; color: appColors.muted }
             }
             Label {
                 visible: device.simulated
@@ -103,21 +125,27 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Noise control"; font.pixelSize: 15; font.weight: Font.DemiBold; color: appColors.text; Layout.fillWidth: true }
-                    Label { text: telemetry.noiseKnown ? ["Off", "NC", "Ambient"][telemetry.noiseMode] : "—"; color: appColors.muted; font.pixelSize: 12
-                        ToolTip.visible: noiseHover.hovered; ToolTip.text: telemetry.noiseError
-                        HoverHandler { id: noiseHover }
+                    Switch {
+                        objectName: "controlsSwitch"
+                        Layout.preferredHeight: 32
+                        text: "Controls"; checked: telemetry.controlsEnabled
+                        enabled: telemetry.canEnableControls && !device.busy
+                        Accessible.name: "Enable experimental controls for this connection"
+                        onToggled: device.enableControls(checked)
                     }
                 }
                 RowLayout {
-                    Layout.fillWidth: true; spacing: 4; enabled: false; opacity: 0.65
+                    Layout.fillWidth: true; spacing: 4; enabled: window.controlsActive; opacity: enabled ? 1 : 0.65
                     Repeater {
                         model: [{name: "NC", mode: 1}, {name: "Ambient", mode: 2}, {name: "Off", mode: 0}]
                         Button {
                             required property var modelData
                             Layout.fillWidth: true; text: modelData.name
                             checked: telemetry.noiseKnown && telemetry.noiseMode === modelData.mode
-                            checkable: true; enabled: false
-                            Accessible.name: modelData.name + (checked ? ", current mode, read only" : ", read only")
+                            objectName: "noiseMode" + modelData.mode
+                            checkable: false
+                            Accessible.name: modelData.name + (checked ? ", current mode" : "")
+                            onClicked: { ambientCommit.stop(); device.setNoise(modelData.mode) }
                         }
                     }
                 }
@@ -125,11 +153,17 @@ ApplicationWindow {
                     visible: telemetry.noiseKnown && telemetry.noiseMode === 2
                     Layout.fillWidth: true
                     Label { text: "Ambient"; color: appColors.muted }
-                    Slider { Layout.fillWidth: true; from: 1; to: 20; value: telemetry.ambient; enabled: false; Accessible.name: "Ambient level, read only" }
-                    Label { text: telemetry.ambient; color: appColors.text }
+                    Slider {
+                        id: ambientSlider; objectName: "ambientLevel"
+                        Layout.fillWidth: true; from: 1; to: 20; stepSize: 1; snapMode: Slider.SnapAlways
+                        value: telemetry.ambient; enabled: window.controlsActive; Accessible.name: "Ambient level"
+                        onMoved: { if (!pressed) ambientCommit.restart() }
+                        onPressedChanged: { if (!pressed && window.controlsActive) { ambientCommit.stop(); device.setNoise(2, Math.round(value)) } }
+                    }
+                    Label { text: Math.round(ambientSlider.value); color: appColors.text }
                 }
                 Label {
-                    text: "Changing settings isn’t available yet."
+                    text: "Experimental controls · writes not hardware-verified."
                     Layout.fillWidth: true; wrapMode: Text.WordWrap; color: appColors.muted; font.pixelSize: 12
                 }
             }
@@ -138,7 +172,8 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Equalizer"; font.pixelSize: 15; font.weight: Font.DemiBold; color: appColors.text; Layout.fillWidth: true }
-                    Label { text: "Read only"; color: appColors.muted; font.pixelSize: 11 }
+                    ToolButton { objectName: "resetEq"; text: "Reset"; Layout.preferredHeight: 32; enabled: window.eqDirty && !device.busy; onClicked: window.resetEq(); Accessible.name: "Discard EQ edits" }
+                    Button { objectName: "applyEq"; text: "Apply"; Layout.preferredHeight: 32; enabled: window.controlsActive && window.eqDirty; onClicked: device.applyEqualizer(window.bassDraft, window.eqDraft); Accessible.name: "Apply equalizer" }
                 }
                 RowLayout {
                     Layout.fillWidth: true; spacing: 8
@@ -149,7 +184,7 @@ ApplicationWindow {
                             required property int index
                             Layout.fillWidth: true; Layout.maximumWidth: Infinity; Layout.preferredWidth: 56; spacing: 3
                             Label {
-                                text: telemetry.eqKnown ? (telemetry.bands[index] > 0 ? "+" : "") + telemetry.bands[index] : "—"
+                                text: telemetry.eqKnown ? (window.eqDraft[index] > 0 ? "+" : "") + window.eqDraft[index] : "—"
                                 color: appColors.text; Layout.alignment: Qt.AlignHCenter
                                 ToolTip.visible: eqHover.hovered; ToolTip.text: telemetry.eqError; ToolTip.delay: 600
                                 HoverHandler { id: eqHover }
@@ -157,9 +192,10 @@ ApplicationWindow {
                             Slider {
                                 objectName: "eqBand" + index
                                 orientation: Qt.Vertical; from: -10; to: 10
-                                value: telemetry.eqKnown ? telemetry.bands[index] : 0
-                                enabled: false; Layout.preferredHeight: 160; Layout.alignment: Qt.AlignHCenter
-                                Accessible.name: modelData + " Hz, read only"
+                                value: window.eqDraft[index]; stepSize: 1; snapMode: Slider.SnapAlways
+                                onMoved: window.editBand(index, value)
+                                enabled: window.controlsActive; Layout.preferredHeight: 136; Layout.alignment: Qt.AlignHCenter
+                                Accessible.name: modelData + " Hz"
                             }
                             Label { text: modelData; color: appColors.muted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
                         }
@@ -169,8 +205,8 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Clear Bass"; color: appColors.text; font.pixelSize: 12 }
-                    Label { text: telemetry.eqKnown ? (telemetry.bass > 0 ? "+" : "") + telemetry.bass : "—"; color: appColors.text }
-                    Slider { objectName: "clearBass"; Layout.fillWidth: true; from: -10; to: 10; value: telemetry.eqKnown ? telemetry.bass : 0; enabled: false; Accessible.name: "Clear Bass, read only" }
+                    Label { text: telemetry.eqKnown ? (window.bassDraft > 0 ? "+" : "") + window.bassDraft : "—"; color: appColors.text }
+                    Slider { objectName: "clearBass"; Layout.fillWidth: true; from: -10; to: 10; stepSize: 1; snapMode: Slider.SnapAlways; value: window.bassDraft; onMoved: window.bassDraft = Math.round(value); enabled: window.controlsActive; Accessible.name: "Clear Bass" }
                 }
             }
             RowLayout {
@@ -191,7 +227,7 @@ ApplicationWindow {
                 Label { text: "Full refresh   " + telemetry.updated; color: appColors.muted; font.pixelSize: 12 }
                 Label { text: "Model name comes from Windows pairing."; color: appColors.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             }
-            Item { Layout.preferredHeight: 8 }
+            Item { Layout.preferredHeight: 0 }
         }
     }
 }

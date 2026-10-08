@@ -1,6 +1,6 @@
 # Local changes to the uploaded upstream snapshot
 
-The original upstream notice is retained. Original hashes are in `vendor/sony-device-center/IMPORT-MANIFEST.json`. No remote GitHub changes were made.
+The original upstream notice is retained. Original hashes are in `vendor/sony-device-center/IMPORT-MANIFEST.json`. The original upstream repository is not modified by this project.
 
 | Imported file | Local adaptation and reason |
 |---|---|
@@ -14,4 +14,4 @@ The original upstream notice is retained. Original hashes are in `vendor/sony-de
 
 The new core uses its own conservative two-model evidence map. It does not call upstream `CapabilityDiscovery`, use inferred model booleans to enable writes, or probe unknown devices. Broader upstream profile code remains only as a reused library and baseline regression subject.
 
-The current scope is a read-only baseline. ACK sequence conventions and retransmissions must be reviewed with physical captures before setters are enabled. No local test is presented as hardware verification.
+The desktop beta adds bounded experimental noise/EQ settings in the new core, using existing imported serializers. Diagnostics remain read-only. Settings are sent once and require ACK plus fresh readback; failures disable session controls. Physical write captures and independent Sony app comparisons remain required to establish hardware confidence. No local test is presented as hardware verification.

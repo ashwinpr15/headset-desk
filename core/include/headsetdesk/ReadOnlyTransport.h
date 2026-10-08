@@ -6,12 +6,15 @@
 #include <memory>
 #include <span>
 #include <string_view>
+#include <mutex>
+#include <optional>
+#include <vector>
 
 namespace headsetdesk {
 using PacketSink = std::function<void(std::string_view direction, std::span<const std::byte> bytes)>;
 
-// The final outbound boundary. Upstream setters exist in the imported library
-// but cannot cross this transport. Querying battery requires a V2 service.
+// Default read-only outbound boundary. Only DeviceSession can grant one exact
+// setting payload. Querying battery requires a confirmed V2 service.
 class ReadOnlyTransport final : public sony::transport::ITransport {
 public:
     using ServiceCheck = std::function<bool()>;
@@ -25,6 +28,13 @@ public:
     std::size_t receive(std::span<std::byte> buffer) override;
 
 private:
+    friend class DeviceSession;
+    // The core may grant one exact, validated setting frame for an opted-in
+    // session. Diagnostics and imported setters cannot grant themselves access.
+    void permitSetting(std::vector<std::uint8_t> payload);
+    void revokeSetting() noexcept;
+    std::mutex permitMutex_;
+    std::optional<std::vector<std::uint8_t>> settingPermit_;
     std::unique_ptr<sony::transport::ITransport> inner_;
     ServiceCheck isV2Service_;
     PacketSink packets_;
