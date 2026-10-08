@@ -9,3 +9,10 @@ Changes to imported files are recorded in `upstream-changes.md`; the import mani
 Static codec lists are supported by Sony's [XM5 specifications](https://www.sony.com/electronics/support/wireless-headphones-bluetooth-headphones/wh-1000xm5/specifications) and [CH720N specifications](https://www.sony.com/electronics/support/wireless-headphones-bluetooth-headphones/wh-ch720n/specifications). Static support does not establish an active codec or Sony protocol support.
 
 Local verification used [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw), [CMake](https://cmake.org/download/), [Ninja](https://github.com/ninja-build/ninja) and [Catch2](https://github.com/catchorg/Catch2/tree/v3.8.1). These developer tools are not included in the source deliverable. Any runtime licenses needed for the separate diagnostic binary are included alongside it.
+
+The local desktop preview uses unmodified, dynamically linked Qt 6.8.3 libraries and QML
+plugins under LGPLv3, with applicable third-party notices. Its matching compiler is Qt's
+MinGW GCC 13.1.0. The portable folder includes Qt, GCC runtime exception, MinGW-w64 and
+winpthreads license texts. Complete verified Qt source archives accompany the local
+deliverables. FluentWinUI3 assets are supplied by Qt; no Sony artwork is used. The small
+headset outline is drawn by new Headset Desk code.

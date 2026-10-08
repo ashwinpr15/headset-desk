@@ -39,7 +39,8 @@ private:
 
 Candidate simulatedCandidate(Model model) {
     // Synthetic address used only in memory. It is never logged or passed to Windows.
-    return {model, {.name = std::string(profileFor(model).name), .address = "00:00:00:00:00:01", .paired = true, .connected = true}};
+    return {model, {.name = std::string(profileFor(model).name),
+        .address = model == Model::Xm5 ? "00:00:00:00:00:01" : "00:00:00:00:00:02", .paired = true, .connected = true}};
 }
 std::unique_ptr<ReadOnlyTransport> makeSimulatedTransport(Model model, PacketSink packets) {
     return std::make_unique<ReadOnlyTransport>(std::make_unique<SimulatedHeadset>(model), [] { return true; }, std::move(packets));

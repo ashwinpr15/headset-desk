@@ -15,8 +15,8 @@ constexpr std::array xm5Capabilities{
     Capability{Feature::Charging, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Unsupported},
     Capability{Feature::Firmware, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Unsupported},
     Capability{Feature::ActiveCodec, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Unsupported},
-    Capability{Feature::NoiseControl, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Verified},
-    Capability{Feature::Equalizer, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Verified},
+    Capability{Feature::NoiseControl, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Unknown},
+    Capability{Feature::Equalizer, Confidence::Verified, Evidence::OurXm5Hardware, xm5Capture, "2.5.1", Confidence::Unknown},
 };
 constexpr std::array chCapabilities{
     Capability{Feature::Battery, Confidence::Verified, Evidence::OurCh720nHardware, chCapture, "1.1.4", Confidence::Unsupported},

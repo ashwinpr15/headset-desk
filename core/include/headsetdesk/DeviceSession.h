@@ -54,6 +54,7 @@ public:
     void connect(const Candidate& candidate);
     void disconnect();
     void refresh();
+    void refreshBattery();
     Snapshot state() const;
 
 private:

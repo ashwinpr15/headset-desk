@@ -123,4 +123,32 @@ Snapshot DeviceSession::state() const {
     std::lock_guard state(stateMutex_);
     return state_;
 }
+
+void DeviceSession::refreshBattery() {
+    std::lock_guard operation(operationMutex_);
+    Snapshot next = state();
+    if (!session_ || !session_->isConnected()) {
+        std::lock_guard state(stateMutex_);
+        clearTelemetry();
+        state_.connection = ConnectionState::Unavailable;
+        state_.connectionError = "The headphone control connection was lost.";
+        return;
+    }
+    try {
+        auto battery = protocol_->getBattery();
+        if (battery.main && *battery.main >= 0 && *battery.main <= 100) next.battery.known(*battery.main);
+        else next.battery.unknown("Battery percentage was not reported.");
+        if (battery.charging.has_value()) next.charging.known(*battery.charging);
+        else next.charging.unknown("Charging state was not reported.");
+    } catch (const std::exception& error) {
+        next.battery.unknown(error.what()); next.charging.unknown(error.what());
+    }
+    std::lock_guard state(stateMutex_);
+    state_ = std::move(next);
+    if (!session_->isConnected()) {
+        clearTelemetry();
+        state_.connection = ConnectionState::Unavailable;
+        state_.connectionError = "The headphone control connection was lost.";
+    }
+}
 } // namespace headsetdesk

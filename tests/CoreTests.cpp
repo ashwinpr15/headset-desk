@@ -4,6 +4,7 @@
 #include "sony/transport/FakeTransport.h"
 #include "WindowsBluetoothConnector.h"
 #include "ReplyingFakeTransport.h"
+#include "sony/protocol/FrameCodec.h"
 
 using namespace headsetdesk;
 using namespace sony::transport;
@@ -31,7 +32,7 @@ TEST_CASE("Reviewed hardware reads have independent evidence and all writes stay
             CHECK(capability.readConfidence == Confidence::Verified);
             CHECK(capability.evidence == (model == Model::Ch720n ? Evidence::OurCh720nHardware : Evidence::OurXm5Hardware));
             CHECK(capability.testedFirmware == (model == Model::Ch720n ? "1.1.4" : "2.5.1"));
-            if (model == Model::Ch720n && (capability.feature == Feature::NoiseControl || capability.feature == Feature::Equalizer))
+            if (capability.feature == Feature::NoiseControl || capability.feature == Feature::Equalizer)
                 CHECK(capability.writeConfidence == Confidence::Unknown);
         }
     }
@@ -133,6 +134,27 @@ TEST_CASE("Unknown or unpaired candidates are rejected before opening the transp
     CHECK(inspect->sentCount() == 0);
     CHECK(inspect->connectedAddress().str().empty());
     CHECK(session.state().connection == ConnectionState::Error);
+}
+
+TEST_CASE("Slow refresh sends only battery GET and preserves other observations", "[core][offline]") {
+    std::vector<std::vector<std::uint8_t>> requests;
+    DeviceSession session(makeSimulatedTransport(Model::Xm5,
+        [&](std::string_view direction, std::span<const std::byte> bytes) {
+            if (direction != "TX") return;
+            auto frame = FrameCodec::decode({reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()});
+            if (frame.type == DataType::DataMdr) requests.push_back(frame.payload);
+        }));
+    session.connect(simulatedCandidate(Model::Xm5));
+    session.refresh();
+    const auto before = session.state();
+    requests.clear();
+    session.refreshBattery();
+    REQUIRE(requests.size() == 1);
+    CHECK(requests.front() == std::vector<std::uint8_t>{0x22, 0x00});
+    CHECK(session.state().firmware.observedAt == before.firmware.observedAt);
+    CHECK(session.state().noise.observedAt == before.noise.observedAt);
+    CHECK(session.state().equalizer.observedAt == before.equalizer.observedAt);
+    CHECK(session.state().battery.value == 80);
 }
 
 TEST_CASE("A lost connection clears previously known telemetry", "[core][state]") {

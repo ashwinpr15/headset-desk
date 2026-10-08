@@ -1,12 +1,14 @@
 # Headset Desk
 
-Windows 11 utility in development for **WH-1000XM5** and **WH-CH720N**. The current experimental prerelease contains the protocol/core and internal read-only diagnostic tool. The desktop application is a later phase.
+Windows 11 utility in development for **WH-1000XM5** and **WH-CH720N**. This local branch adds a read-only desktop preview with a window and system tray. The public prerelease remains the earlier internal diagnostic tool; this desktop build has not been published.
 
 [![Windows build](https://github.com/ashwinpr15/headset-desk/actions/workflows/windows.yml/badge.svg)](https://github.com/ashwinpr15/headset-desk/actions/workflows/windows.yml)
 
 [Diagnostic downloads](https://github.com/ashwinpr15/headset-desk/releases) · [Hardware evidence](docs/hardware-validation.md) · [Architecture](docs/architecture.md)
 
-The intended MVP is a window plus tray with model, battery, charging and firmware telemetry; NC/Ambient 1–20/Off; five-band EQ and Clear Bass. Closing the window will keep the connection alive in the tray; Quit will exit. Sign-in launch is off by default. The GUI, tray, editable controls and installer come in later phases.
+The desktop preview displays model, battery, charging, firmware, reported codec, noise state, five-band EQ and Clear Bass. Setting controls are disabled, and writes are blocked by the core transport on both models. Closing hides the window and keeps the connection alive in the tray; tray Quit disconnects and exits. The window is resizable and scrolls on smaller displays. Sign-in launch is off by default and no startup registration is installed. Editable controls and an installer remain future work.
+
+See [desktop build and packaging](docs/desktop-build.md) and [local validation and measurements](docs/desktop-validation.md). Extract the complete portable folder and run `headset-desk.exe`. The preview is unsigned, so Windows SmartScreen may show a warning.
 
 ## What exists
 
@@ -17,6 +19,9 @@ The intended MVP is a window plus tray with model, battery, charging and firmwar
 - Known/Unknown telemetry, with unknown charging distinct from `false` and unknown battery distinct from `0`.
 - Read/write evidence tracked separately. Physical captures confirm the observed reads on XM5 firmware 2.5.1 and CH720N firmware 1.1.4. Successful reads do not enable writes.
 - Offline simulation, protocol regressions and core tests. Test execution never enumerates or connects to real headphones.
+- Qt 6.8.3 Quick UI with FluentWinUI3 controls, a shared light/dark palette, and a native tray icon using Qt Widgets and QApplication.
+- One Bluetooth worker thread, manual refresh, refresh on reopening, and a three-minute battery-only timer. Unclassified headset notifications are not used as feature updates.
+- A local single-instance pipe forwards Open to the first process. It accepts only Open; it exposes no hardware command API.
 
 ## Building
 
@@ -65,9 +70,9 @@ EQ: 0 5 7 7 9 Clear Bass -1
 Writes: disabled
 ```
 
-## Connection policy for the future GUI
+## Desktop connection policy
 
-The core selects an auto-connect target only when Windows reports a supported device both paired and active. Otherwise it remains idle and offers manual Connect. Paired disconnected headsets remain in the manual list. If both are active, a supplied preferred address wins; absent a preference, XM5 is selected first. The current diagnostic tool never auto-connects on startup. Automatic reconnect and tray lifecycle integration are deferred to the GUI worker.
+The desktop auto-connects only when Windows reports a supported device both paired and active. Otherwise it stays idle with manual Connect and Refresh list. Paired disconnected headsets remain selectable. If both are active, the last successfully connected device is preferred; absent a preference, XM5 is selected first. Only one session is open at a time. Choosing another headset disconnects the old one; press Connect to open the new one. Reopening requests a full refresh. Link loss triggers at most five retry attempts with increasing delays; manual Disconnect, changing target and Quit cancel retries. The diagnostic CLI still never auto-connects on startup.
 
 ## Scope and evidence
 
