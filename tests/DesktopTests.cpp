@@ -91,7 +91,8 @@ private slots:
         second.start(QCoreApplication::applicationFilePath(), {"--forward-instance", key});
         QTRY_VERIFY_WITH_TIMEOUT(second.state() == QProcess::NotRunning, 10000);
         QCOMPARE(second.exitCode(), 0);
-        QCOMPARE(opened.count(), 1);
+        // The OPEN message arrives over a local pipe and may land just after the second process exits.
+        QTRY_COMPARE_WITH_TIMEOUT(opened.count(), 1, 5000);
     }
     void experimentalControlsAndReadback() {
         DeviceController device("ch720n");

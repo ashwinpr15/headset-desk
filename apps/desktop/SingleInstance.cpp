@@ -3,6 +3,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QTimer>
+#include <QDeadlineTimer>
 
 SingleInstance::SingleInstance(QString key, QObject* parent) : QObject(parent) {
     key += "-" + QString::number(qHash(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)), 16);
@@ -19,7 +20,18 @@ SingleInstance::SingleInstance(QString key, QObject* parent) : QObject(parent) {
         if (socket.waitForConnected(3000)) {
             socket.write("OPEN\n");
             socket.waitForBytesWritten(1000);
-            forwarded_ = socket.waitForReadyRead(1000) && socket.readAll() == "OK\n";
+            // The reply can arrive split or just after the server disconnects; read until
+            // the full acknowledgement is in or the deadline passes.
+            QByteArray reply;
+            QDeadlineTimer deadline(2000);
+            while (!reply.contains("OK\n") && !deadline.hasExpired()) {
+                reply += socket.readAll();
+                if (reply.contains("OK\n")) break;
+                if (socket.state() != QLocalSocket::ConnectedState) break;
+                socket.waitForReadyRead(static_cast<int>(qMax<qint64>(1, deadline.remainingTime())));
+            }
+            reply += socket.readAll();
+            forwarded_ = reply.startsWith("OK\n");
         }
         if (!forwarded_) error_ = "Couldn’t reach the running instance.";
         return;
