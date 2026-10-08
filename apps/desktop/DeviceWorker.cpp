@@ -136,6 +136,10 @@ void DeviceWorker::runCommand(const std::function<void()>& command, QString succ
     try {
         command();
         emit messageChanged(std::move(success));
+    } catch (const SettingNotConfirmed& mismatch) {
+        // The link is fine and the headphones answered; they just reported something else.
+        // Show what they report, keep Allow changes on, and never resend.
+        emit messageChanged(QString::fromUtf8(mismatch.what()) + " Showing what the headphones report; nothing was resent.");
     } catch (const std::exception&) {
         session_->enableControls(false);
         session_->refresh(); // Show actual state after an uncertain write; never replay it.
@@ -157,10 +161,18 @@ void DeviceWorker::enableControls(bool enabled) {
     }, enabled ? "Experimental controls enabled for this connection." : QString{});
 }
 
-void DeviceWorker::setNoise(int mode, int level) {
-    runCommand([this, mode, level] {
-        session_->setNoise(static_cast<sony::protocol::NoiseControlMode>(mode), level);
+void DeviceWorker::setNoise(int mode, int level, int voice) {
+    runCommand([this, mode, level, voice] {
+        session_->setNoise(static_cast<sony::protocol::NoiseControlMode>(mode), level, voice);
     }, "Noise setting confirmed by headphones.");
+}
+
+void DeviceWorker::setSpeakToChat(bool enabled) {
+    runCommand([this, enabled] { session_->setSpeakToChat(enabled); }, "Speak-to-Chat confirmed by headphones.");
+}
+
+void DeviceWorker::setDsee(bool enabled) {
+    runCommand([this, enabled] { session_->setDsee(enabled); }, "DSEE confirmed by headphones.");
 }
 
 void DeviceWorker::setEqualizer(int bass, QVariantList values) {

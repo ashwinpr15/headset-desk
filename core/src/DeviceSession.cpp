@@ -4,6 +4,12 @@
 #include <thread>
 
 namespace headsetdesk {
+namespace {
+std::string describe(sony::protocol::NoiseControlMode mode) {
+    using sony::protocol::NoiseControlMode;
+    return mode == NoiseControlMode::NoiseCancelling ? "Noise Cancelling" : mode == NoiseControlMode::Ambient ? "Ambient" : "Off";
+}
+}
 DeviceSession::DeviceSession(std::unique_ptr<ReadOnlyTransport> transport) : transport_(std::move(transport)) {
     if (!transport_) throw std::invalid_argument("Read-only transport required");
 }
@@ -11,8 +17,10 @@ DeviceSession::~DeviceSession() { disconnect(); }
 
 void DeviceSession::clearTelemetry() {
     state_.controlsEnabled = false;
+    state_.lastChange.clear();
     state_.battery.unknown(); state_.charging.unknown(); state_.firmware.unknown();
     state_.activeCodec.unknown(); state_.noise.unknown(); state_.equalizer.unknown();
+    state_.speakToChat.unknown(); state_.dsee.unknown();
 }
 
 void DeviceSession::resetLink() {
@@ -35,7 +43,8 @@ void DeviceSession::connect(const Candidate& candidate) {
             throw sony::SonyException(sony::SonyErrorCode::Unsupported, "Select a paired WH-1000XM5 or WH-CH720N.");
         session_ = std::make_unique<sony::protocol::SonyProtocolSession>(transport_.get());
         session_->connect(candidate.device.address);
-        protocol_ = std::make_unique<sony::protocol::ProtocolV2>(*session_, false, true);
+        ncAmbientSwapped_ = *model == Model::Ch720n;
+        protocol_ = std::make_unique<sony::protocol::ProtocolV2>(*session_, false, true, ncAmbientSwapped_);
         protocol_->initDevice(); // Reviewed GET handshake; no feature setters.
         if (!session_->isConnected()) throw sony::SonyException(sony::SonyErrorCode::Disconnected);
         std::lock_guard state(stateMutex_);
@@ -74,6 +83,7 @@ void DeviceSession::refresh() {
         std::lock_guard state(stateMutex_);
         next.model = state_.model;
         next.controlsEnabled = state_.controlsEnabled;
+        next.lastChange = state_.lastChange;
     }
     next.connection = ConnectionState::Connected;
     try {
@@ -120,8 +130,21 @@ void DeviceSession::refresh() {
         next.connectionError = "The headphone control connection was lost.";
     }
     if (!next.noise.value || !next.equalizer.value || !next.firmware.value) next.controlsEnabled = false;
+    if (next.controlsEnabled && next.connection == ConnectionState::Connected) readExtras(next);
     std::lock_guard state(stateMutex_);
     state_ = std::move(next);
+}
+
+void DeviceSession::readExtras(Snapshot& into) {
+    // Two extra exact GETs, only while Allow changes is on. A feature the headphones don't
+    // answer simply stays unknown and its control stays unavailable.
+    if (!session_ || !session_->isConnected() || !into.model) return;
+    if (*into.model == Model::Xm5) {
+        try { into.speakToChat.known(protocol_->getSpeakToChat()); }
+        catch (const std::exception& error) { into.speakToChat.unknown(error.what()); }
+    } else into.speakToChat.unknown("Speak-to-Chat isn't part of this model.");
+    try { into.dsee.known(protocol_->getDsee()); }
+    catch (const std::exception& error) { into.dsee.unknown(error.what()); }
 }
 
 void DeviceSession::enableControls(bool enabled) {
@@ -130,8 +153,19 @@ void DeviceSession::enableControls(bool enabled) {
     if (enabled && (!session_ || !session_->isConnected() || !snapshot.model ||
         !snapshot.noise.value || !snapshot.equalizer.value || !snapshot.firmware.value))
         throw sony::SonyException(sony::SonyErrorCode::Unsupported, "Refresh the headphone readings before enabling controls.");
-    std::lock_guard state(stateMutex_);
-    state_.controlsEnabled = enabled;
+    {
+        std::lock_guard state(stateMutex_);
+        state_.controlsEnabled = enabled;
+        if (!enabled) { state_.speakToChat.unknown(); state_.dsee.unknown(); }
+    }
+    transport_->allowExtraQueries(enabled);
+    if (enabled) {
+        Snapshot extras;
+        extras.model = snapshot.model;
+        readExtras(extras);
+        std::lock_guard state(stateMutex_);
+        state_.speakToChat = extras.speakToChat; state_.dsee = extras.dsee;
+    }
 }
 
 Snapshot DeviceSession::requireControls() const {
@@ -143,11 +177,13 @@ Snapshot DeviceSession::requireControls() const {
 
 void DeviceSession::commandFailed() {
     transport_->revokeSetting();
+    transport_->allowExtraQueries(false);
     std::lock_guard state(stateMutex_);
     state_.controlsEnabled = false;
+    state_.speakToChat.unknown(); state_.dsee.unknown();
 }
 
-void DeviceSession::setNoise(sony::protocol::NoiseControlMode mode, int ambientLevel) {
+void DeviceSession::setNoise(sony::protocol::NoiseControlMode mode, int ambientLevel, int voice) {
     std::lock_guard operation(operationMutex_);
     const auto snapshot = requireControls();
     using sony::protocol::NoiseControlMode;
@@ -155,27 +191,38 @@ void DeviceSession::setNoise(sony::protocol::NoiseControlMode mode, int ambientL
         throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "Invalid noise-control request.");
     auto desired = *snapshot.noise.value;
     desired.mode = mode;
+    if (voice < -1 || voice > 1) throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "Invalid noise-control request.");
+    if (voice >= 0) desired.focusOnVoice = voice == 1;
     desired.ambientLevel = ambientLevel == -1 ? std::max(1, desired.ambientLevel) : ambientLevel;
     if (desired.ambientLevel < 1 || desired.ambientLevel > 20)
         throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "Ambient level must be 1–20.");
     std::vector<std::uint8_t> payload{0x68, 0x17, 1,
         static_cast<std::uint8_t>(mode != NoiseControlMode::Off),
-        static_cast<std::uint8_t>(mode == NoiseControlMode::Ambient),
+        static_cast<std::uint8_t>((mode == NoiseControlMode::Ambient) != ncAmbientSwapped_),
         static_cast<std::uint8_t>(desired.focusOnVoice), static_cast<std::uint8_t>(desired.ambientLevel)};
     try {
         transport_->permitSetting(std::move(payload));
         protocol_->setNoiseControl(desired); // Waits for ACK; never retries a setting.
         transport_->revokeSetting();
-        for (int attempt = 0; attempt < 3; ++attempt) {
-            const auto actual = protocol_->getNoiseControl();
+        // The headphones can take a moment to apply a change, so poll for up to ~2.5 s.
+        sony::protocol::NoiseControlState actual;
+        for (int attempt = 0; attempt < 12; ++attempt) {
+            actual = protocol_->getNoiseControl();
             {
                 std::lock_guard state(stateMutex_);
                 state_.noise.known(actual);
             }
-            if (actual.mode == mode && (mode != NoiseControlMode::Ambient || actual.ambientLevel == desired.ambientLevel)) return;
-            if (attempt < 2) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (actual.mode == mode) { // Ambient level is a bonus check, not a reason to fail the mode.
+                std::lock_guard state(stateMutex_);
+                state_.lastChange = "Noise: " + describe(mode) + (mode == NoiseControlMode::Ambient ? " level " + std::to_string(actual.ambientLevel) : "") + " confirmed";
+                return;
+            }
+            if (attempt < 11) std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
-        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "The headphones did not confirm the requested noise setting.");
+        std::lock_guard state(stateMutex_);
+        state_.lastChange = "Noise: asked for " + describe(mode) + ", headphones reported " + describe(actual.mode);
+        throw SettingNotConfirmed("The headphones reported " + describe(actual.mode) + " instead of " + describe(mode) + ".");
+    } catch (const SettingNotConfirmed&) { throw;
     } catch (...) { commandFailed(); throw; }
 }
 
@@ -191,17 +238,55 @@ void DeviceSession::setEqualizer(int clearBass, const std::vector<int>& bands) {
         transport_->permitSetting(std::move(payload));
         protocol_->setEqualizerCustom(clearBass, bands);
         transport_->revokeSetting();
-        for (int attempt = 0; attempt < 3; ++attempt) {
-            auto actual = protocol_->getEqualizer();
+        sony::protocol::EqualizerState actual;
+        for (int attempt = 0; attempt < 12; ++attempt) {
+            actual = protocol_->getEqualizer();
             const bool matches = actual.clearBass == clearBass && actual.bands == bands;
             {
                 std::lock_guard state(stateMutex_);
-                state_.equalizer.known(std::move(actual));
+                state_.equalizer.known(actual);
+                if (matches) state_.lastChange = "EQ confirmed";
             }
             if (matches) return;
-            if (attempt < 2) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (attempt < 11) std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
-        throw sony::SonyException(sony::SonyErrorCode::InvalidResponse, "The headphones did not confirm the requested EQ values.");
+        std::lock_guard state(stateMutex_);
+        state_.lastChange = "EQ: headphones reported different values than requested";
+        throw SettingNotConfirmed("The headphones reported different EQ values than requested.");
+    } catch (const SettingNotConfirmed&) { throw;
+    } catch (...) { commandFailed(); throw; }
+}
+
+void DeviceSession::setSpeakToChat(bool enabled) { setToggle(false, enabled); }
+void DeviceSession::setDsee(bool enabled) { setToggle(true, enabled); }
+
+void DeviceSession::setToggle(bool dsee, bool enabled) {
+    std::lock_guard operation(operationMutex_);
+    const auto snapshot = requireControls();
+    const auto& current = dsee ? snapshot.dsee : snapshot.speakToChat;
+    if (!current.value || (!dsee && snapshot.model != Model::Xm5))
+        throw sony::SonyException(sony::SonyErrorCode::Unsupported, "The headphones did not report this feature.");
+    const std::string name = dsee ? (snapshot.model == Model::Xm5 ? "DSEE Extreme" : "DSEE") : "Speak-to-Chat";
+    std::vector<std::uint8_t> payload = dsee
+        ? std::vector<std::uint8_t>{0xe8, 0x01, static_cast<std::uint8_t>(enabled)}
+        : std::vector<std::uint8_t>{0xf8, 0x0c, static_cast<std::uint8_t>(enabled ? 0 : 1), 0x01};
+    try {
+        transport_->permitSetting(std::move(payload));
+        if (dsee) protocol_->setDsee(enabled); else protocol_->setSpeakToChat(enabled); // Waits for ACK; never retries.
+        transport_->revokeSetting();
+        for (int attempt = 0; attempt < 12; ++attempt) {
+            const bool actual = dsee ? protocol_->getDsee() : protocol_->getSpeakToChat();
+            {
+                std::lock_guard state(stateMutex_);
+                (dsee ? state_.dsee : state_.speakToChat).known(actual);
+                if (actual == enabled) { state_.lastChange = name + (enabled ? " on" : " off") + " confirmed"; return; }
+            }
+            if (attempt < 11) std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+        std::lock_guard state(stateMutex_);
+        state_.lastChange = name + ": headphones reported the opposite setting";
+        throw SettingNotConfirmed("The headphones kept " + name + " " + (enabled ? "off" : "on") + ".");
+    } catch (const SettingNotConfirmed&) { throw;
     } catch (...) { commandFailed(); throw; }
 }
 

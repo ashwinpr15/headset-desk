@@ -33,6 +33,9 @@ private:
     // session. Diagnostics and imported setters cannot grant themselves access.
     void permitSetting(std::vector<std::uint8_t> payload);
     void revokeSetting() noexcept;
+    // Speak-to-Chat and DSEE are read with two extra exact GETs, only after the user has opted in.
+    void allowExtraQueries(bool allowed) noexcept { extraQueries_ = allowed; }
+    std::atomic<bool> extraQueries_{false};
     std::mutex permitMutex_;
     std::optional<std::vector<std::uint8_t>> settingPermit_;
     std::unique_ptr<sony::transport::ITransport> inner_;

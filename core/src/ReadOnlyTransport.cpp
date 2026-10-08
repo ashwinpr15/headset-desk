@@ -35,6 +35,7 @@ void ReadOnlyTransport::connect(const sony::transport::DeviceAddress& address) {
 
 void ReadOnlyTransport::disconnect() noexcept {
     revokeSetting();
+    extraQueries_ = false;
     serviceVerified_ = false;
     inner_->disconnect();
 }
@@ -55,10 +56,14 @@ std::size_t ReadOnlyTransport::send(std::span<const std::byte> bytes) {
         {{0x00, 0x00}}, {{0x22, 0x00}}, {{0x04, 0x02}},
         {{0x12, 0x02}}, {{0x66, 0x17}}, {{0x56, 0x00}}
     }};
+    // Opt-in only: ProtocolV2::getDsee (e6 01) and ProtocolV2::getSpeakToChat (f6 0c).
+    constexpr std::array<std::array<std::uint8_t, 2>, 2> extraQueries{{{{0xe6, 0x01}}, {{0xf6, 0x0c}}}};
     if (frame.type == sony::protocol::DataType::DataMdr && frame.payload.size() == 2) {
         permitted = std::any_of(queries.begin(), queries.end(), [&](const auto& query) {
             return std::equal(query.begin(), query.end(), frame.payload.begin());
-        });
+        }) || (extraQueries_ && std::any_of(extraQueries.begin(), extraQueries.end(), [&](const auto& query) {
+            return std::equal(query.begin(), query.end(), frame.payload.begin());
+        }));
     }
     if (!permitted && frame.type == sony::protocol::DataType::DataMdr) {
         std::lock_guard lock(permitMutex_);
@@ -87,7 +92,9 @@ void ReadOnlyTransport::permitSetting(std::vector<std::uint8_t> payload) {
     const bool eq = payload.size() == 10 && payload[0] == 0x58 && payload[1] == 0 &&
         payload[2] == 0xa0 && payload[3] == 6 &&
         std::all_of(payload.begin() + 4, payload.end(), [](auto value) { return value <= 20; });
-    if (!isConnected() || (!noise && !eq))
+    const bool dsee = payload.size() == 3 && payload[0] == 0xe8 && payload[1] == 0x01 && payload[2] <= 1;
+    const bool speak = payload.size() == 4 && payload[0] == 0xf8 && payload[1] == 0x0c && payload[2] <= 1 && payload[3] == 0x01;
+    if (!isConnected() || (!noise && !eq && !dsee && !speak))
         throw SonyException(SonyErrorCode::Unsupported, "Invalid setting command.");
     std::lock_guard lock(permitMutex_);
     settingPermit_ = std::move(payload);

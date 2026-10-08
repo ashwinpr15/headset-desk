@@ -6,16 +6,21 @@ namespace headsetdesk {
 namespace {
 class SimulatedHeadset final : public sony::transport::FakeTransport {
 public:
-    explicit SimulatedHeadset(Model model, SimulationFailure failure) : model_(model), failure_(failure) {}
+    explicit SimulatedHeadset(Model model, SimulationFailure failure) : model_(model), failure_(failure) {
+        // Start in Noise Cancelling. The CH720N reports ambient with the opposite bit from other models.
+        noise_[4] = model == Model::Ch720n ? 1 : 0;
+    }
     std::size_t send(std::span<const std::byte> bytes) override {
         const auto written = FakeTransport::send(bytes);
         const auto frame = sony::protocol::FrameCodec::decode({reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()});
         if (frame.type != sony::protocol::DataType::DataMdr) return written;
         const auto& request = frame.payload;
-        const bool setting = !request.empty() && (request[0] == 0x68 || request[0] == 0x58);
+        const bool setting = !request.empty() && (request[0] == 0x68 || request[0] == 0x58 || request[0] == 0xe8 || request[0] == 0xf8);
         if (setting && failure_ == SimulationFailure::DisconnectOnSetting) { disconnect(); return written; }
         if (setting && failure_ != SimulationFailure::IgnoreSettings) {
             if (request[0] == 0x68) { noise_ = request; noise_[0] = 0x67; }
+            else if (request[0] == 0xe8 && request.size() >= 3) dsee_ = request[2];
+            else if (request[0] == 0xf8 && request.size() >= 3) speak_ = request[2];
             else { eq_ = request; eq_[0] = 0x57; }
         }
         if (setting && failure_ == SimulationFailure::NoSettingAck) return written;
@@ -29,6 +34,8 @@ public:
         } else if (request == std::vector<std::uint8_t>{0x12, 0x02}) reply = {0x13, 0x02, 0x02};
         else if (request == std::vector<std::uint8_t>{0x66, 0x17}) reply = noise_;
         else if (request == std::vector<std::uint8_t>{0x56, 0x00}) reply = eq_;
+        else if (request == std::vector<std::uint8_t>{0xe6, 0x01}) reply = {0xe7, 0x01, dsee_};
+        else if (request == std::vector<std::uint8_t>{0xf6, 0x0c}) reply = {0xf7, 0x0c, speak_};
         queueIncoming(sony::protocol::FrameCodec::encode({.type = sony::protocol::DataType::Ack,
             .sequence = static_cast<std::uint8_t>(1 - (frame.sequence & 1))}));
         if (!reply.empty()) {
@@ -43,6 +50,8 @@ private:
     SimulationFailure failure_;
     std::vector<std::uint8_t> noise_{0x67, 0x17, 1, 1, 0, 0, 1};
     std::vector<std::uint8_t> eq_{0x57, 0, 0xa0, 6, 10, 10, 10, 10, 10, 10};
+    std::uint8_t dsee_{0};
+    std::uint8_t speak_{1}; // The headphones report Speak-to-Chat inverted: 1 means off.
     std::uint8_t responseSequence_{0};
 };
 }

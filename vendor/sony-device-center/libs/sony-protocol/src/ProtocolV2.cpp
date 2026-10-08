@@ -26,8 +26,10 @@ int apoIndexFromCode(uint8_t c0, uint8_t c1) {
 
 } // namespace
 
-ProtocolV2::ProtocolV2(SonyProtocolSession& session, bool tenBandEqualizer, bool singleBatteryOnly)
-    : _session(session), _tenBandEqualizer(tenBandEqualizer), _singleBatteryOnly(singleBatteryOnly) {}
+ProtocolV2::ProtocolV2(SonyProtocolSession& session, bool tenBandEqualizer, bool singleBatteryOnly,
+                       bool ncAmbientSwapped)
+    : _session(session), _tenBandEqualizer(tenBandEqualizer), _singleBatteryOnly(singleBatteryOnly),
+      _ncAmbientSwapped(ncAmbientSwapped) {}
 
 void ProtocolV2::initDevice() {
     // V2 handshake init: 0x00 0x00 -> RET 0x01
@@ -111,7 +113,7 @@ NoiseControlState ProtocolV2::getNoiseControl() {
     NoiseControlState state;
     if (resp.payload.size() >= 7) {
         bool on = resp.payload[3] != 0;
-        bool ambient = resp.payload[4] != 0;
+        bool ambient = (resp.payload[4] != 0) != _ncAmbientSwapped;
         bool voice = resp.payload[5] != 0;
         int level = static_cast<int>(resp.payload[6]);
 
@@ -130,7 +132,8 @@ NoiseControlState ProtocolV2::getNoiseControl() {
 
 void ProtocolV2::setNoiseControl(const NoiseControlState& state) {
     uint8_t effect = (state.mode == NoiseControlMode::Off) ? 0 : 1;
-    uint8_t settingType = (state.mode == NoiseControlMode::Ambient) ? 1 : 0;
+    const bool ambientRequested = state.mode == NoiseControlMode::Ambient;
+    uint8_t settingType = (ambientRequested != _ncAmbientSwapped) ? 1 : 0;
     uint8_t voice = state.focusOnVoice ? 1 : 0;
     uint8_t level = static_cast<uint8_t>(state.ambientLevel > 0 ? state.ambientLevel : 1);
 

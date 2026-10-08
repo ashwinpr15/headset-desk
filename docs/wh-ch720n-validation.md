@@ -1,4 +1,4 @@
-> **Current policy (v0.4.0 beta):** The capture results below are the historical read-only baseline. The desktop offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. The owner reports the 0.3.0 app worked on this CH720N (firmware 1.1.4); see [owner-observed desktop use](hardware-validation.md#owner-observed-desktop-use-2026-10-07-v030-beta1). Write confidence in code remains UNKNOWN.
+> **Current policy (v0.5.0 beta):** The capture results below are the historical read-only baseline. The desktop offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. The owner reports the 0.3.0 app worked on this CH720N (firmware 1.1.4); see [owner-observed desktop use](hardware-validation.md#owner-observed-desktop-use-2026-10-07-v030-beta1). Write confidence in code remains UNKNOWN.
 
 # WH-CH720N validation record
 
@@ -16,3 +16,5 @@ Captured-session status: **Observed reads hardware verified; writes were disable
 Static SBC/AAC support comes from Sony specifications. The absence of LDAC, DSEE Extreme, Speak-to-Chat, touch controls and a wear sensor is a static model distinction, not something this build probes. These features have no app controls in Phase 2.
 
 Unresolved: charging=true, NC/Ambient states, all other EQ preset indices and range endpoints, live Sony model identity, active-codec meaning under multipoint, long sessions and disconnect/reconnect behavior, and every write operation. The captured Off effect overrides retained ambient configuration fields. Synthetic simulations cannot resolve these questions. See [the full comparison and evidence limits](hardware-validation.md).
+
+Owner report on 0.4.0: the Ambient/Noise Cancelling bit is inverted on the CH720N compared with the upstream order; 0.5.0 corrects this for this model. See [hardware evidence](hardware-validation.md).

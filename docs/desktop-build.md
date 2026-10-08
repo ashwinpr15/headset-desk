@@ -1,6 +1,6 @@
 # Windows desktop build and packaging
 
-Version: 0.4.0-beta.1. Windows 11 x64 only. Installer and portable ZIP in GitHub Releases.
+Version: 0.5.0-beta.1. Windows 11 x64 only. Installer and portable ZIP in GitHub Releases.
 
 ## Automated builds
 
@@ -10,7 +10,7 @@ test (core, protocol, controls and the desktop QML tests), deploys with windeplo
 at 100% and 150% with only the bundled runtime on PATH, builds the Inno Setup installer, silently installs it,
 hash-compares every installed file, launches the installed app offline and uninstalls it.
 
-Pushes to `main` and manual runs upload the results as a workflow artifact. Pushing a tag such as `v0.4.0-beta.1`
+Pushes to `main` and manual runs upload the results as a workflow artifact. Pushing a tag such as `v0.5.0-beta.1`
 that matches the version in `packaging/windows/headset-desk.iss`, `CMakeLists.txt`, `main.cpp` and `windows.rc`
 publishes a prerelease with the installer, portable ZIP, source ZIP, validation ZIP, the unchanged Qt 6.8.3
 corresponding-source archive and `CHECKSUMS.txt`, using `docs/releases/<tag>.md` as notes. Runtime notices

@@ -14,7 +14,8 @@ public:
     // (inquired type 0x00) shared with ProtocolV1. See DeviceProfile.h and
     // issue #10.
     explicit ProtocolV2(SonyProtocolSession& session, bool tenBandEqualizer = false,
-                        bool singleBatteryOnly = false);
+                        bool singleBatteryOnly = false,
+                        bool ncAmbientSwapped = false);
     ~ProtocolV2() override = default;
 
     [[nodiscard]] ProtocolGeneration generation() const noexcept override {
@@ -53,6 +54,10 @@ private:
     std::mutex _mutex;
     bool _tenBandEqualizer;
     bool _singleBatteryOnly;
+    // WH-CH720N: the NC/ambient bit is the opposite of the upstream layout
+    // (owner heard noise cancelling when ambient was requested). Applies to
+    // both the reply parser and the setter.
+    bool _ncAmbientSwapped;
 };
 
 } // namespace sony::protocol

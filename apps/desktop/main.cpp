@@ -39,13 +39,31 @@ QIcon headsetIcon() {
     }
     return icon;
 }
+
+// Match the title bar to the page (Windows 11 title-bar colour attributes; ignored on older builds)
+// and follow the light/dark setting, so the window reads as one surface.
+void applyWindowChrome(QWindow* window, bool dark) {
+    using DwmSetWindowAttributeFn = HRESULT(WINAPI*)(HWND, DWORD, LPCVOID, DWORD);
+    static const auto setAttribute = [] {
+        const HMODULE module = LoadLibraryW(L"dwmapi.dll");
+        return module ? reinterpret_cast<DwmSetWindowAttributeFn>(reinterpret_cast<void*>(GetProcAddress(module, "DwmSetWindowAttribute"))) : nullptr;
+    }();
+    if (!setAttribute || !window) return;
+    const auto hwnd = reinterpret_cast<HWND>(window->winId());
+    const BOOL immersiveDark = dark ? TRUE : FALSE;
+    const COLORREF caption = dark ? RGB(0x20, 0x20, 0x20) : RGB(0xf3, 0xf3, 0xf3);
+    const COLORREF text = dark ? RGB(0xff, 0xff, 0xff) : RGB(0x1a, 0x1a, 0x1a);
+    setAttribute(hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &immersiveDark, sizeof(immersiveDark));
+    setAttribute(hwnd, 35 /* DWMWA_CAPTION_COLOR */, &caption, sizeof(caption));
+    setAttribute(hwnd, 36 /* DWMWA_TEXT_COLOR */, &text, sizeof(text));
+}
 }
 
 int main(int argc, char* argv[]) {
     QElapsedTimer startup; startup.start();
     QApplication app(argc, argv);
     app.setApplicationName("Headset Desk"); app.setOrganizationName("HeadsetDesk");
-    app.setApplicationVersion("0.4.0-beta.1");
+    app.setApplicationVersion("0.5.0-beta.1");
     app.setQuitOnLastWindowClosed(false);
     QCommandLineParser parser;
     parser.setApplicationDescription("Headset Desk — Windows headphone controls");
@@ -55,13 +73,16 @@ int main(int argc, char* argv[]) {
     parser.addOption({"capture", "Internal preview PNG output (requires simulation).", "path"});
     parser.addOption({"metrics", "Internal preview measurements JSON (requires simulation).", "path"});
     parser.addOption({"ready-file", "Internal first-frame marker (requires simulation).", "path"});
+    parser.addOption({"page", "Internal preview page: 0 Headphones, 1 Sound, 2 Features, 3 Device.", "number"});
+    parser.addOption({"controls", "Internal preview: turn on Allow changes in the simulation before capturing."});
     parser.addOption({"exit-after-capture", "Exit the offline preview after recording."});
     parser.process(app);
     const auto simulation = parser.value("simulate");
     const auto theme = parser.value("theme");
     if ((!simulation.isEmpty() && simulation != "xm5" && simulation != "ch720n" && simulation != "idle") ||
         (!theme.isEmpty() && theme != "light" && theme != "dark") ||
-        (simulation.isEmpty() && (parser.isSet("theme") || parser.isSet("capture") || parser.isSet("metrics") || parser.isSet("ready-file") || parser.isSet("exit-after-capture"))) ||
+        (simulation.isEmpty() && (parser.isSet("theme") || parser.isSet("capture") || parser.isSet("metrics") || parser.isSet("ready-file") || parser.isSet("exit-after-capture") || parser.isSet("page") || parser.isSet("controls"))) ||
+        (parser.isSet("page") && !QStringList{"0", "1", "2", "3"}.contains(parser.value("page"))) ||
         (parser.isSet("exit-after-capture") && !parser.isSet("capture") && !parser.isSet("metrics"))) return 2;
 
     SingleInstance instance(simulation.isEmpty() ? "headset-desk-v1" : "headset-desk-preview-v1");
@@ -97,6 +118,11 @@ int main(int argc, char* argv[]) {
     auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
     if (!window) return 4;
     window->setIcon(icon);
+    if (parser.isSet("page")) window->setProperty("page", parser.value("page").toInt());
+    applyWindowChrome(window, app.styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+    QObject::connect(app.styleHints(), &QStyleHints::colorSchemeChanged, window, [window, &app] {
+        applyWindowChrome(window, app.styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+    });
 
     QSystemTrayIcon tray(icon);
     QMenu menu;
@@ -133,11 +159,16 @@ int main(int argc, char* argv[]) {
         }
     }, Qt::QueuedConnection);
     bool recorded = false;
+    bool controlsRequested = false;
     QTimer previewTimer;
     if (parser.isSet("capture") || parser.isSet("metrics")) {
         previewTimer.setInterval(250);
         QObject::connect(&previewTimer, &QTimer::timeout, &app, [&] {
             if (recorded || controller.busy() || firstFrameMs < 0 || startup.elapsed() < 6000) return;
+            if (parser.isSet("controls") && !controller.state().value("controlsEnabled").toBool()) {
+                if (!controlsRequested) { controlsRequested = true; controller.enableControls(true); }
+                return; // wait for the opt-in and the extra readings to settle
+            }
             recorded = true; previewTimer.stop();
             PROCESS_MEMORY_COUNTERS_EX memory{}; memory.cb = sizeof(memory);
             GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory), sizeof(memory));

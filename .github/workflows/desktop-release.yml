@@ -125,18 +125,24 @@ jobs:
           $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
           $shots = (Resolve-Path out/validation/screenshots).Path
           $runs = @(
-            @{ sim='xm5'; theme='light'; scale='1'; file='light-100' },
-            @{ sim='xm5'; theme='dark'; scale='1'; file='dark-100' },
-            @{ sim='xm5'; theme='light'; scale='1.5'; file='light-150' },
-            @{ sim='xm5'; theme='dark'; scale='1.5'; file='dark-150' },
-            @{ sim='ch720n'; theme='dark'; scale='1'; file='ch720n-dark-100' },
-            @{ sim='idle'; theme='light'; scale='1'; file='idle-light-100' }
+            @{ sim='xm5'; theme='dark'; scale='1'; page='0'; controls=$false; file='dark-100' },
+            @{ sim='xm5'; theme='light'; scale='1'; page='0'; controls=$false; file='light-100' },
+            @{ sim='xm5'; theme='dark'; scale='1'; page='0'; controls=$true; file='dark-controls-100' },
+            @{ sim='xm5'; theme='dark'; scale='1'; page='1'; controls=$true; file='sound-dark-100' },
+            @{ sim='xm5'; theme='light'; scale='1'; page='2'; controls=$true; file='features-light-100' },
+            @{ sim='xm5'; theme='dark'; scale='1'; page='3'; controls=$false; file='device-dark-100' },
+            @{ sim='xm5'; theme='light'; scale='1.5'; page='0'; controls=$false; file='light-150' },
+            @{ sim='xm5'; theme='dark'; scale='1.5'; page='0'; controls=$false; file='dark-150' },
+            @{ sim='ch720n'; theme='dark'; scale='1'; page='0'; controls=$true; file='ch720n-dark-100' },
+            @{ sim='idle'; theme='light'; scale='1'; page='0'; controls=$false; file='idle-light-100' }
           )
           foreach ($r in $runs) {
             $env:QT_SCALE_FACTOR = $r.scale
             $png = Join-Path $shots "$($r.file).png"; $json = Join-Path $shots "$($r.file).json"
-            $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList @('--simulate', $r.sim, '--theme', $r.theme,
+            $launch = @('--simulate', $r.sim, '--theme', $r.theme, '--page', $r.page,
               '--capture', $png, '--metrics', $json, '--exit-after-capture')
+            if ($r.controls) { $launch += '--controls' }
+            $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList $launch
             if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "Capture $($r.file) failed with $($p.ExitCode)" }
           }
           Remove-Item Env:QT_SCALE_FACTOR

@@ -26,6 +26,9 @@ public:
     Q_INVOKABLE void rescan();
     Q_INVOKABLE void enableControls(bool enabled);
     Q_INVOKABLE void setNoise(int mode, int level = -1);
+    Q_INVOKABLE void setVoicePassthrough(bool enabled);
+    Q_INVOKABLE void setSpeakToChat(bool enabled);
+    Q_INVOKABLE void setDsee(bool enabled);
     Q_INVOKABLE void applyEqualizer(int bass, QVariantList bands);
     Q_INVOKABLE void quit();
 signals:

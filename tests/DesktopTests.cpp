@@ -98,12 +98,21 @@ private slots:
         DeviceController device("ch720n");
         QTRY_VERIFY(!device.busy());
         QVERIFY(!device.state().value("controlsEnabled").toBool());
+        QVERIFY(!device.state().value("dseeKnown").toBool()); // extras are not even queried before the opt-in
         device.setNoise(0); QTest::qWait(50);
         QCOMPARE(device.state().value("noiseMode").toInt(), 1);
         device.enableControls(true); QTRY_VERIFY(!device.busy());
         QVERIFY(device.state().value("controlsEnabled").toBool());
         device.setNoise(2, 20); QTRY_VERIFY(!device.busy());
         QCOMPARE(device.state().value("noiseMode").toInt(), 2);
+        QCOMPARE(device.state().value("ambient").toInt(), 20);
+        QVERIFY(device.state().value("dseeKnown").toBool());
+        QVERIFY(!device.state().value("speakKnown").toBool()); // no Speak-to-Chat on the CH720N
+        device.setSpeakToChat(true); QTest::qWait(50);
+        device.setDsee(true); QTRY_VERIFY(!device.busy());
+        QVERIFY(device.state().value("dsee").toBool());
+        device.setVoicePassthrough(true); QTRY_VERIFY(!device.busy());
+        QVERIFY(device.state().value("voice").toBool());
         QCOMPARE(device.state().value("ambient").toInt(), 20);
         device.applyEqualizer(3, {-10,-5,0,5,10}); QTRY_VERIFY(!device.busy());
         QCOMPARE(device.state().value("bass").toInt(), 3);
@@ -145,6 +154,12 @@ private slots:
         QCOMPARE(device.state().value("bands").toList().at(0).toInt(), 6);
         device.setNoise(2, 10); QTRY_VERIFY(!device.busy());
         QCOMPARE(device.state().value("ambient").toInt(), 10);
+        QVERIFY(device.state().value("speakKnown").toBool());
+        device.setSpeakToChat(true); QTRY_VERIFY(!device.busy());
+        QVERIFY(device.state().value("speak").toBool());
+        auto* speak = find(window->contentItem(), "speakSwitch"); QVERIFY(speak); QVERIFY(speak->isEnabled());
+        auto* nav = find(window->contentItem(), "navSound"); QVERIFY(nav);
+        QVERIFY(QMetaObject::invokeMethod(nav, "clicked")); QTRY_COMPARE(window->property("page").toInt(), 1);
         const auto captures = qEnvironmentVariable("HEADSET_DESK_CAPTURE_DIR");
         if (!captures.isEmpty()) {
             window->resize(420, 820); QTest::qWait(300);

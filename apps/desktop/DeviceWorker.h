@@ -20,7 +20,9 @@ public slots:
     void refresh(bool batteryOnly = false);
     void rescan();
     void enableControls(bool enabled);
-    void setNoise(int mode, int level);
+    void setNoise(int mode, int level, int voice = -1);
+    void setSpeakToChat(bool enabled);
+    void setDsee(bool enabled);
     void setEqualizer(int bass, QVariantList bands);
     void shutdown();
 signals:

@@ -61,8 +61,15 @@ void DeviceController::apply(const Snapshot& snapshot, bool fullRefresh) {
         {"noiseKnown", snapshot.noise.value.has_value()}, {"noiseError", errorOf(snapshot.noise)},
         {"noiseMode", snapshot.noise.value ? static_cast<int>(snapshot.noise.value->mode) : -1},
         {"ambient", snapshot.noise.value ? snapshot.noise.value->ambientLevel : 1},
+        {"voice", snapshot.noise.value ? snapshot.noise.value->focusOnVoice : false},
+        {"speakKnown", snapshot.speakToChat.value.has_value()}, {"speak", snapshot.speakToChat.value.value_or(false)},
+        {"speakError", errorOf(snapshot.speakToChat)},
+        {"dseeKnown", snapshot.dsee.value.has_value()}, {"dsee", snapshot.dsee.value.value_or(false)},
+        {"dseeError", errorOf(snapshot.dsee)},
+        {"isXm5", snapshot.model && *snapshot.model == Model::Xm5},
         {"eqKnown", snapshot.equalizer.value.has_value()}, {"eqError", errorOf(snapshot.equalizer)},
         {"bands", bands}, {"bass", snapshot.equalizer.value ? QVariant(snapshot.equalizer.value->clearBass) : QVariant{}},
+        {"lastChange", QString::fromStdString(snapshot.lastChange)},
         {"updated", last}, {"updatedEpoch", updatedEpoch}};
     emit changed();
 }
@@ -105,6 +112,21 @@ void DeviceController::setNoise(int mode, int level) {
         (level != -1 && (level < 1 || level > 20))) return;
     busy_ = true; emit changed();
     QMetaObject::invokeMethod(worker_, [worker = worker_, mode, level] { worker->setNoise(mode, level); }, Qt::QueuedConnection);
+}
+void DeviceController::setVoicePassthrough(bool enabled) {
+    if (busy_ || quitting_ || !state_.value("controlsEnabled").toBool() || state_.value("noiseMode").toInt() != 2) return;
+    busy_ = true; emit changed();
+    QMetaObject::invokeMethod(worker_, [worker = worker_, enabled] { worker->setNoise(2, -1, enabled ? 1 : 0); }, Qt::QueuedConnection);
+}
+void DeviceController::setSpeakToChat(bool enabled) {
+    if (busy_ || quitting_ || !state_.value("controlsEnabled").toBool() || !state_.value("speakKnown").toBool()) return;
+    busy_ = true; emit changed();
+    QMetaObject::invokeMethod(worker_, [worker = worker_, enabled] { worker->setSpeakToChat(enabled); }, Qt::QueuedConnection);
+}
+void DeviceController::setDsee(bool enabled) {
+    if (busy_ || quitting_ || !state_.value("controlsEnabled").toBool() || !state_.value("dseeKnown").toBool()) return;
+    busy_ = true; emit changed();
+    QMetaObject::invokeMethod(worker_, [worker = worker_, enabled] { worker->setDsee(enabled); }, Qt::QueuedConnection);
 }
 void DeviceController::applyEqualizer(int bass, QVariantList bands) {
     if (busy_ || quitting_ || !state_.value("controlsEnabled").toBool() || bass < -10 || bass > 10 || bands.size() != 5) return;

@@ -7,7 +7,7 @@
   #error OutputDir must point to the release output directory
 #endif
 #ifndef AppVersion
-  #define AppVersion "0.4.0-beta.1"
+  #define AppVersion "0.5.0-beta.1"
 #endif
 
 [Setup]
@@ -30,7 +30,7 @@ OutputDir={#OutputDir}
 OutputBaseFilename=headset-desk-v{#AppVersion}-windows-x64-setup
 SetupIconFile=..\..\apps\desktop\resources\headset-desk.ico
 UninstallDisplayIcon={app}\headset-desk.exe
-VersionInfoVersion=0.4.0.1
+VersionInfoVersion=0.5.0.1
 LicenseFile=..\..\LICENSE
 Compression=lzma2
 SolidCompression=yes
