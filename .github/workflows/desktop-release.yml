@@ -83,8 +83,21 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force out/validation/screenshots | Out-Null
           $env:HEADSET_DESK_CAPTURE_DIR = (Resolve-Path out/validation/screenshots).Path
-          ctest --test-dir build --output-on-failure --output-junit (Join-Path (Resolve-Path out/validation) 'tests.xml')
-          if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
+          ctest --test-dir build --output-on-failure -E desktop-offline --output-junit (Join-Path (Resolve-Path out/validation) 'tests.xml')
+          if ($LASTEXITCODE -ne 0) { throw 'Core tests failed' }
+          # Desktop QML tests run directly (three passes) so any failure or flake names the exact check.
+          $exe = Resolve-Path build/bin/headset-desk-desktop-tests.exe
+          foreach ($pass in 1..3) {
+            $log = Join-Path (Resolve-Path out/validation) "desktop-tests-$pass.txt"
+            & $exe -o "$log,txt" -o "-,txt" 2>&1 | Out-Host
+            $code = $LASTEXITCODE
+            $failed = Get-Content $log -ErrorAction SilentlyContinue | Where-Object { $_ -match 'FAIL!|Loc:|QFATAL|Totals' }
+            $failed | ForEach-Object { Write-Output $_ }
+            if ($code -ne 0) {
+              $hex = '0x{0:X8}' -f $code
+              throw "Desktop tests pass $pass exited $code ($hex): $(($failed | Select-Object -First 6) -join ' | ')"
+            }
+          }
 
       - name: Deploy runtime
         run: |
@@ -177,16 +190,17 @@ jobs:
           Compress-Archive -Path out/validation/* -DestinationPath "out/dist/$name-validation.zip"
 
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ steps.version.outputs.name }}-windows
           path: |
             out/dist/*
             out/validation/**
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Publish prerelease
-        if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        if: success() && (github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish))
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
