@@ -10,6 +10,11 @@ on:
     branches: [main]
     tags: ['v*-beta.*', 'v*-rc.*']
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish this build from main as a prerelease (creates tag v<version>)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -181,11 +186,18 @@ jobs:
           if-no-files-found: error
 
       - name: Publish prerelease
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $name = '${{ steps.version.outputs.name }}'
+          $tag = 'v${{ steps.version.outputs.version }}'
+          if ($env:GITHUB_REF_TYPE -ne 'tag') {
+            if ($env:GITHUB_REF_NAME -ne 'main') { throw 'Manual publishing is only allowed from main' }
+            gh release view $tag 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists; bump the version first" }
+            $global:LASTEXITCODE = 0
+          }
           # Same Qt 6.8.3 runtime as the previous beta: carry its exact corresponding sources forward.
           gh release download v0.3.0-beta.1 --pattern '*-qt-runtime-sources.zip' --dir out/qt
           if ($LASTEXITCODE -ne 0) { throw 'Qt source download failed' }
@@ -196,8 +208,13 @@ jobs:
           } | Set-Content -Encoding ascii CHECKSUMS.txt
           Get-Content CHECKSUMS.txt
           Pop-Location
-          $notes = "docs/releases/$env:GITHUB_REF_NAME.md"
+          $notes = "docs/releases/$tag.md"
           if (-not (Test-Path $notes)) { throw "Release notes $notes missing" }
           $title = (Get-Content $notes -TotalCount 1).TrimStart('#', ' ')
-          gh release create $env:GITHUB_REF_NAME (Get-ChildItem out/dist -File).FullName --prerelease --title $title --notes-file $notes --verify-tag
+          $files = (Get-ChildItem out/dist -File).FullName
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            gh release create $tag $files --prerelease --title $title --notes-file $notes --verify-tag
+          } else {
+            gh release create $tag $files --prerelease --title $title --notes-file $notes --target $env:GITHUB_SHA
+          }
           if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }

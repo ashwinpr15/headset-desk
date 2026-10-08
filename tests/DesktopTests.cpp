@@ -58,6 +58,7 @@ private slots:
         engine.rootContext()->setContextProperty("device", &device);
         engine.rootContext()->setContextProperty("darkTheme", false);
         engine.rootContext()->setContextProperty("trayAvailable", true);
+        engine.rootContext()->setContextProperty("reduceMotion", true);
         engine.load(QUrl::fromLocalFile(QString(HEADSET_DESK_QML_DIR) + "/Main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
@@ -121,6 +122,7 @@ private slots:
         engine.rootContext()->setContextProperty("device", &device);
         engine.rootContext()->setContextProperty("darkTheme", true);
         engine.rootContext()->setContextProperty("trayAvailable", true);
+        engine.rootContext()->setContextProperty("reduceMotion", true);
         engine.load(QUrl::fromLocalFile(QString(HEADSET_DESK_QML_DIR) + "/Main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());

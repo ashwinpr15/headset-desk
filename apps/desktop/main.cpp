@@ -86,6 +86,10 @@ int main(int argc, char* argv[]) {
     };
     updateTheme();
     QObject::connect(app.styleHints(), &QStyleHints::colorSchemeChanged, &app, updateTheme);
+    // Respect Windows "Animation effects": when off, the UI skips decorative motion.
+    BOOL animations = TRUE;
+    if (!SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0)) animations = TRUE;
+    engine.rootContext()->setContextProperty("reduceMotion", animations == FALSE);
     const bool trayAvailable = QSystemTrayIcon::isSystemTrayAvailable();
     engine.rootContext()->setContextProperty("trayAvailable", trayAvailable);
     engine.loadFromModule("HeadsetDesk", "Main");
