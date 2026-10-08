@@ -20,12 +20,14 @@ env:
 
 jobs:
   desktop:
-    runs-on: windows-2022
+    # Windows Server 2025 (build 26100) satisfies the installer's Windows 11 minimum (build 22000).
+    runs-on: windows-2025
     permissions:
       contents: write
     defaults:
       run:
-        shell: pwsh
+        # Surface any thrown error as a run annotation so failures are readable without logs.
+        shell: pwsh -NoProfile -Command "$ErrorActionPreference = 'Stop'; trap { Write-Output ('::error::' + $_.ToString()); exit 1 }; . '{0}'"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
