@@ -82,7 +82,6 @@ jobs:
           QT_QUICK_BACKEND: software
         run: |
           New-Item -ItemType Directory -Force out/validation/screenshots | Out-Null
-          $env:HEADSET_DESK_CAPTURE_DIR = (Resolve-Path out/validation/screenshots).Path
           ctest --test-dir build --output-on-failure -E desktop-offline --output-junit (Join-Path (Resolve-Path out/validation) 'tests.xml')
           if ($LASTEXITCODE -ne 0) { throw 'Core tests failed' }
           # Desktop QML tests run directly (three passes) so any failure or flake names the exact check.
