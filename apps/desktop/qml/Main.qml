@@ -229,6 +229,7 @@ ApplicationWindow {
         hoverEnabled: true; focusPolicy: Qt.StrongFocus
         Accessible.role: Accessible.RadioButton
         Accessible.name: modelData.name + (current ? ", current mode" : "")
+        onClicked: { ambientCommit.stop(); device.setNoise(modelData.mode) }
         scale: down && enabled ? 0.98 : 1
         Behavior on scale { NumberAnimation { duration: window.ms(90) } }
         background: Rectangle {
