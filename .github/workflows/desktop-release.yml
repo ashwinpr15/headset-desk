@@ -27,7 +27,7 @@ jobs:
     defaults:
       run:
         # Surface any thrown error as a run annotation so failures are readable without logs.
-        shell: pwsh -NoProfile -Command "$ErrorActionPreference = 'Stop'; trap { Write-Output ('::error::' + $_.ToString()); exit 1 }; . '{0}'"
+        shell: pwsh -NoProfile -Command "$ErrorActionPreference = 'Stop'; trap {{ Write-Output ('::error::' + $_.ToString()); exit 1 }}; . '{0}'"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
