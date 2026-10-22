@@ -1,0 +1,38 @@
+name: Tested on my headphones
+description: Tell me how Headset Desk worked on your headset, good or bad
+labels: [device-report]
+body:
+  - type: markdown
+    attributes:
+      value: Every report helps confirm which models and firmware versions work. Thank you!
+  - type: dropdown
+    id: model
+    attributes:
+      label: Headphones
+      options:
+        - WH-1000XM5
+        - WH-CH720N
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Headphone firmware
+      placeholder: e.g. 1.1.4
+    validations:
+      required: true
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked?
+      options:
+        - label: Battery, firmware and codec readings
+        - label: Noise Cancelling / Ambient / Off
+        - label: Ambient level and voice passthrough
+        - label: Equalizer and Clear Bass
+        - label: Speak-to-Chat or DSEE
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything that didn't work or looked wrong?

@@ -1,0 +1,50 @@
+name: Bug report
+description: Something isn't working the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report this! A few details help me reproduce it.
+  - type: dropdown
+    id: model
+    attributes:
+      label: Headphones
+      options:
+        - WH-1000XM5
+        - WH-CH720N
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Headphone firmware
+      description: Shown on the Device page, or in Sony's phone app.
+      placeholder: e.g. 2.5.1
+  - type: input
+    id: version
+    attributes:
+      label: Headset Desk version
+      placeholder: e.g. 0.5.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - Installer
+        - Portable ZIP
+        - Built from source
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or messages
+      description: Any message the app showed, or a screenshot.
