@@ -38,12 +38,30 @@ public:
         else if (request == std::vector<std::uint8_t>{0xf6, 0x0c}) reply = {0xf7, 0x0c, speak_};
         queueIncoming(sony::protocol::FrameCodec::encode({.type = sony::protocol::DataType::Ack,
             .sequence = static_cast<std::uint8_t>(1 - (frame.sequence & 1))}));
+        if (setting && request[0] == 0x68 && failure_ == SimulationFailure::None) {
+            // Like the headset, also announce the new noise state as a notification.
+            auto echo = noise_; echo[0] = 0x69;
+            queueIncoming(sony::protocol::FrameCodec::encode({.type = sony::protocol::DataType::DataMdr,
+                .sequence = responseSequence_, .payload = std::move(echo)}));
+            responseSequence_ ^= 1;
+        }
         if (!reply.empty()) {
             queueIncoming(sony::protocol::FrameCodec::encode({.type = sony::protocol::DataType::DataMdr,
                 .sequence = responseSequence_, .payload = std::move(reply)}));
             responseSequence_ ^= 1;
         }
         return written;
+    }
+    void pressNoiseButton(sony::protocol::NoiseControlMode mode) {
+        using sony::protocol::NoiseControlMode;
+        const bool ambient = mode == NoiseControlMode::Ambient;
+        noise_[3] = mode != NoiseControlMode::Off;
+        noise_[4] = ambient != (model_ == Model::Ch720n);
+        if (ambient && noise_[6] < 1) noise_[6] = 1;
+        auto notification = noise_; notification[0] = 0x69;
+        queueIncoming(sony::protocol::FrameCodec::encode({.type = sony::protocol::DataType::DataMdr,
+            .sequence = responseSequence_, .payload = std::move(notification)}));
+        responseSequence_ ^= 1;
     }
 private:
     Model model_;
@@ -61,7 +79,13 @@ Candidate simulatedCandidate(Model model) {
     return {model, {.name = std::string(profileFor(model).name),
         .address = model == Model::Xm5 ? "00:00:00:00:00:01" : "00:00:00:00:00:02", .paired = true, .connected = true}};
 }
-std::unique_ptr<ReadOnlyTransport> makeSimulatedTransport(Model model, PacketSink packets, SimulationFailure failure) {
-    return std::make_unique<ReadOnlyTransport>(std::make_unique<SimulatedHeadset>(model, failure), [] { return true; }, std::move(packets));
+std::unique_ptr<ReadOnlyTransport> makeSimulatedTransport(Model model, PacketSink packets, SimulationFailure failure,
+    std::function<void(sony::protocol::NoiseControlMode)>* pressNoiseButton) {
+    auto headset = std::make_unique<SimulatedHeadset>(model, failure);
+    if (pressNoiseButton) {
+        auto* raw = headset.get(); // Owned by the transport returned below; valid while it lives.
+        *pressNoiseButton = [raw](sony::protocol::NoiseControlMode mode) { raw->pressNoiseButton(mode); };
+    }
+    return std::make_unique<ReadOnlyTransport>(std::move(headset), [] { return true; }, std::move(packets));
 }
 } // namespace headsetdesk

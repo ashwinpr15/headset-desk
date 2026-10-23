@@ -106,27 +106,30 @@ NoiseControlState ProtocolV2::getNoiseControl() {
         std::chrono::milliseconds(1000)
     );
 
-    if (resp.payload.size() < 7 || resp.payload[1] != 0x17 || resp.payload[2] != 1)
+    return parseNoiseControl(resp.payload, _ncAmbientSwapped);
+}
+
+NoiseControlState ProtocolV2::parseNoiseControl(const std::vector<uint8_t>& payload, bool ncAmbientSwapped) {
+    // Same layout for the reply (67 17 ...) and the headset's own notification (69 17 ...),
+    // which it sends when the noise mode changes, for example from its NC/Ambient button.
+    if (payload.size() < 7 || payload[1] != 0x17 || payload[2] != 1)
         throw SonyException(SonyErrorCode::InvalidResponse, "Malformed noise-control response");
-    if (resp.payload[3] > 1 || resp.payload[4] > 1 || resp.payload[5] > 1)
+    if (payload[3] > 1 || payload[4] > 1 || payload[5] > 1)
         throw SonyException(SonyErrorCode::InvalidResponse, "Invalid noise-control flags");
     NoiseControlState state;
-    if (resp.payload.size() >= 7) {
-        bool on = resp.payload[3] != 0;
-        bool ambient = (resp.payload[4] != 0) != _ncAmbientSwapped;
-        bool voice = resp.payload[5] != 0;
-        int level = static_cast<int>(resp.payload[6]);
-
-        if (!on) {
-            state.mode = NoiseControlMode::Off;
-        } else if (ambient) {
-            state.mode = NoiseControlMode::Ambient;
-        } else {
-            state.mode = NoiseControlMode::NoiseCancelling;
-        }
-        state.ambientLevel = ambient ? level : 0;
-        state.focusOnVoice = voice;
+    const bool on = payload[3] != 0;
+    const bool ambient = (payload[4] != 0) != ncAmbientSwapped;
+    const bool voice = payload[5] != 0;
+    const int level = static_cast<int>(payload[6]);
+    if (!on) {
+        state.mode = NoiseControlMode::Off;
+    } else if (ambient) {
+        state.mode = NoiseControlMode::Ambient;
+    } else {
+        state.mode = NoiseControlMode::NoiseCancelling;
     }
+    state.ambientLevel = ambient ? level : 0;
+    state.focusOnVoice = voice;
     return state;
 }
 

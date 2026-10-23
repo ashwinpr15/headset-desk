@@ -31,6 +31,10 @@ public:
     Q_INVOKABLE void setDsee(bool enabled);
     Q_INVOKABLE void applyEqualizer(int bass, QVariantList bands);
     Q_INVOKABLE void quit();
+    // Window shown/hidden: while shown, the noise mode is also checked every few seconds.
+    Q_INVOKABLE void setWatching(bool watching);
+    // Offline preview and tests only (ignored with real headphones).
+    Q_INVOKABLE void simulateHeadphoneButton(int mode);
 signals:
     void changed();
     void finished();

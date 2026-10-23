@@ -134,6 +134,7 @@ jobs:
             @{ sim='xm5'; theme='light'; scale='1.5'; page='0'; controls=$false; file='light-150' },
             @{ sim='xm5'; theme='dark'; scale='1.5'; page='0'; controls=$false; file='dark-150' },
             @{ sim='ch720n'; theme='dark'; scale='1'; page='0'; controls=$true; file='ch720n-dark-100' },
+            @{ sim='xm5'; theme='dark'; scale='1'; page='0'; controls=$true; button='2'; file='button-dark-100' },
             @{ sim='idle'; theme='light'; scale='1'; page='0'; controls=$false; file='idle-light-100' }
           )
           foreach ($r in $runs) {
@@ -142,6 +143,7 @@ jobs:
             $launch = @('--simulate', $r.sim, '--theme', $r.theme, '--page', $r.page,
               '--capture', $png, '--metrics', $json, '--exit-after-capture')
             if ($r.controls) { $launch += '--controls' }
+            if ($r.button) { $launch += @('--headphone-button', $r.button) }
             $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList $launch
             if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "Capture $($r.file) failed with $($p.ExitCode)" }
           }

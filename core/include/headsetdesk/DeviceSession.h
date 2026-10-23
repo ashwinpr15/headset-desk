@@ -3,7 +3,9 @@
 #include "DeviceDiscovery.h"
 #include "ReadOnlyTransport.h"
 #include "sony/protocol/ProtocolV2.h"
+#include <atomic>
 #include <chrono>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -50,6 +52,8 @@ struct Snapshot {
     Telemetry<bool> dsee;        // DSEE / DSEE Extreme
     std::string connectionError;
     std::string lastChange; // Most recent noise/EQ change outcome, for the Details panel.
+    // Counts noise-mode changes made on the headphones themselves (button press), not by the app.
+    int externalNoiseChanges{0};
 };
 
 // Synchronous core shared by the GUI worker and internal CLI. Calls are
@@ -72,6 +76,11 @@ public:
     void setDsee(bool enabled);
     void setEqualizer(int clearBass, const std::vector<int>& bands);
     Snapshot state() const;
+    // Reads only the noise mode (one allow-listed GET). Returns true if it changed.
+    bool refreshNoise();
+    // Called from the Bluetooth reader thread when the headset reports a noise change by itself.
+    // Set before connect(); the callback must only post work elsewhere.
+    void setChangeListener(std::function<void()> listener) { listener_ = std::move(listener); }
 
 private:
     void clearTelemetry();
@@ -80,12 +89,20 @@ private:
     void commandFailed();
     void setToggle(bool dsee, bool enabled);
     void readExtras(Snapshot& into);
+    void onNotification(const std::vector<std::uint8_t>& payload);
+    // Notes a noise state the headset reported; counts it as a headphone-side change unless
+    // the app itself was changing settings just now.
+    bool observeNoise(const sony::protocol::NoiseControlState& noise, const char* source);
+    struct CommandScope;
+    std::atomic<bool> commandInFlight_{false};
+    std::atomic<long long> commandEndedMs_{0};
+    std::function<void()> listener_;
     mutable std::mutex operationMutex_;
     mutable std::mutex stateMutex_;
     std::unique_ptr<ReadOnlyTransport> transport_;
     std::unique_ptr<sony::protocol::SonyProtocolSession> session_;
     std::unique_ptr<sony::protocol::ProtocolV2> protocol_;
-    bool ncAmbientSwapped_{false};
+    std::atomic<bool> ncAmbientSwapped_{false};
     Snapshot state_;
 };
 } // namespace headsetdesk

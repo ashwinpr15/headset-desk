@@ -25,6 +25,11 @@ public slots:
     void setDsee(bool enabled);
     void setEqualizer(int bass, QVariantList bands);
     void shutdown();
+    // While the window is open, also check the noise mode every few seconds in case the
+    // headset does not announce a button press by itself.
+    void setWatching(bool watching);
+    // Offline preview and tests only: acts like the headset's NC/Ambient button.
+    void simulateHeadphoneButton(int mode);
 signals:
     void devicesChanged(QStringList names, int selected);
     void snapshotChanged(headsetdesk::Snapshot state, bool fullRefresh);
@@ -42,6 +47,8 @@ private:
     std::unique_ptr<headsetdesk::DeviceSession> session_;
     QTimer* batteryTimer_;
     QTimer* reconnectTimer_;
+    QTimer* noiseTimer_;
+    std::function<void(sony::protocol::NoiseControlMode)> pressButton_;
     int attempts_{0};
     bool reconnectAllowed_{false};
     bool stopping_{false};

@@ -43,9 +43,34 @@ ApplicationWindow {
                 if (signature !== confirmedEq) { confirmedEq = signature; resetEq() }
             }
             if (!window.controlsActive) ambientCommit.stop()
+            if (!telemetry.connected) window.pendingMode = -1
+            else if (window.pendingMode >= 0 && telemetry.controlsEnabled && !device.busy) {
+                const mode = window.pendingMode
+                window.pendingMode = -1
+                if (!telemetry.noiseKnown || telemetry.noiseMode !== mode) device.setNoise(mode)
+            }
+            const external = telemetry.externalNoiseChanges || 0
+            if (window.seenExternal >= 0 && external > window.seenExternal && telemetry.noiseKnown) hud.show(telemetry.noiseMode)
+            window.seenExternal = external
         }
     }
-    Component.onCompleted: resetEq()
+    Component.onCompleted: { resetEq(); seenExternal = telemetry.externalNoiseChanges || 0 }
+    // A mode the user tapped while changes were locked; applied once they turn changes on.
+    property int pendingMode: -1
+    // Headphone-side changes already shown (the toast appears only for new ones).
+    property int seenExternal: -1
+    function modeInfo(mode) { return mode === 1 ? modes[0] : mode === 2 ? modes[1] : mode === 0 ? modes[2] : null }
+    function modeTone(mode) { return mode === 1 ? appColors.accent : mode === 2 ? appColors.green : appColors.muted }
+    function chooseMode(mode) {
+        ambientCommit.stop()
+        if (telemetry.controlsEnabled) { pendingMode = -1; device.setNoise(mode) }
+        else pendingMode = mode
+    }
+    Shortcut { sequence: "Ctrl+1"; onActivated: window.page = 0 }
+    Shortcut { sequence: "Ctrl+2"; onActivated: window.page = 1 }
+    Shortcut { sequence: "Ctrl+3"; onActivated: window.page = 2 }
+    Shortcut { sequence: "Ctrl+4"; onActivated: window.page = 3 }
+    Shortcut { sequence: StandardKey.Refresh; onActivated: if (!device.busy) { telemetry.connected ? device.refresh() : device.rescan() } }
     Timer { id: ambientCommit; interval: 250; onTriggered: { if (window.controlsActive && telemetry.noiseMode === 2) device.setNoise(2, Math.round(ambientSlider.value)) } }
     property double currentTime: Date.now()
     readonly property int ageMinutes: Math.max(0, Math.floor((currentTime - telemetry.updatedEpoch) / 60000))
@@ -229,7 +254,7 @@ ApplicationWindow {
         hoverEnabled: true; focusPolicy: Qt.StrongFocus
         Accessible.role: Accessible.RadioButton
         Accessible.name: modelData.name + (current ? ", current mode" : "")
-        onClicked: { ambientCommit.stop(); device.setNoise(modelData.mode) }
+        onClicked: window.chooseMode(modelData.mode)
         scale: down && enabled ? 0.98 : 1
         Behavior on scale { NumberAnimation { duration: window.ms(90) } }
         background: Rectangle {
@@ -241,6 +266,11 @@ ApplicationWindow {
             Behavior on color { ColorAnimation { duration: window.ms(150) } }
             Behavior on border.color { ColorAnimation { duration: window.ms(150) } }
             FocusRing { target: tile; radius: 10; anchors.margins: -3 }
+        }
+        Glyph { // small lock while changes are off
+            visible: !telemetry.controlsEnabled && tile.enabled && !tile.current
+            kind: "lock"; size: 14; tint: appColors.faint
+            anchors { right: parent.right; top: parent.top; margins: 10 }
         }
         contentItem: ColumnLayout {
             spacing: 6
@@ -358,6 +388,26 @@ ApplicationWindow {
                                     ToolTip.visible: chargingHover.hovered && telemetry.chargingError.length > 0; ToolTip.text: telemetry.chargingError; ToolTip.delay: 600
                                     HoverHandler { id: chargingHover }
                                 }
+                                RowLayout { // current mode at a glance
+                                    visible: telemetry.connected && telemetry.noiseKnown
+                                    Layout.topMargin: 8; spacing: 8
+                                    Rectangle {
+                                        implicitWidth: modeChip.implicitWidth + 20; implicitHeight: 28; radius: 14
+                                        color: Qt.alpha(window.modeTone(telemetry.noiseMode), appColors.dark ? 0.16 : 0.10)
+                                        Behavior on color { ColorAnimation { duration: window.ms(200) } }
+                                        RowLayout {
+                                            id: modeChip
+                                            anchors.centerIn: parent; spacing: 6
+                                            Glyph { kind: window.modeInfo(telemetry.noiseMode) ? window.modeInfo(telemetry.noiseMode).icon : "off"; size: 16
+                                                tint: telemetry.noiseMode === 0 ? appColors.text : window.modeTone(telemetry.noiseMode) }
+                                            Label {
+                                                text: (window.modeInfo(telemetry.noiseMode) ? window.modeInfo(telemetry.noiseMode).name : "")
+                                                    + (telemetry.noiseMode === 2 ? " · level " + telemetry.ambient : "")
+                                                color: appColors.text; font.pixelSize: 13; font.weight: Font.DemiBold
+                                            }
+                                        }
+                                    }
+                                }
                                 RowLayout {
                                     Layout.topMargin: 16; Layout.fillWidth: true; spacing: 8
                                     ComboBox {
@@ -457,12 +507,39 @@ ApplicationWindow {
                                 spacing: 12
                                 RowLayout {
                                     Layout.fillWidth: true; spacing: 8
-                                    enabled: window.controlsActive
+                                    enabled: telemetry.connected && telemetry.noiseKnown && !device.busy
                                     Repeater { model: window.modes; ModeTile {} }
                                 }
                                 Label {
                                     text: window.modeIndex >= 0 ? window.modes[window.modeIndex].hint : "Current mode unknown."
                                     color: appColors.muted; font.pixelSize: 12
+                                }
+                                Reveal { // tapped a mode while changes are locked
+                                    objectName: "allowPrompt"
+                                    open: window.pendingMode >= 0 && !telemetry.controlsEnabled
+                                    Rectangle {
+                                        Layout.fillWidth: true; implicitHeight: promptRow.implicitHeight + 20; radius: 6
+                                        color: Qt.alpha(appColors.warn, appColors.dark ? 0.10 : 0.08); border.color: Qt.alpha(appColors.warn, 0.45)
+                                        RowLayout {
+                                            id: promptRow
+                                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 14; rightMargin: 10 }
+                                            spacing: 12
+                                            Glyph { kind: "lock"; tint: appColors.warn; size: 18 }
+                                            Label {
+                                                Layout.fillWidth: true; wrapMode: Text.WordWrap; color: appColors.text
+                                                text: telemetry.canEnableControls
+                                                    ? "Switching to " + (window.modeInfo(window.pendingMode) ? window.modeInfo(window.pendingMode).name : "") + " needs Allow changes. It stays on until you disconnect."
+                                                    : "Refresh the readings first, then turn on Allow changes."
+                                            }
+                                            HdButton { text: "Not now"; onClicked: window.pendingMode = -1 }
+                                            HdButton {
+                                                objectName: "allowAndSwitch"
+                                                text: "Turn on and switch"; primary: true
+                                                enabled: telemetry.canEnableControls && !device.busy
+                                                onClicked: device.enableControls(true)
+                                            }
+                                        }
+                                    }
                                 }
                                 Reveal {
                                     open: telemetry.noiseKnown && telemetry.noiseMode === 2
@@ -725,6 +802,46 @@ ApplicationWindow {
                             Label { text: Qt.application.version; color: appColors.muted } }
                     }
                 }
+            }
+        }
+
+        // Toast for a mode changed with the headphones' own button (like the macOS volume HUD).
+        Rectangle {
+            id: hud
+            objectName: "headphoneHud"
+            property int mode: -1
+            function show(m) { mode = m; hudAnim.restart() }
+            x: window.paneWidth + (parent.width - window.paneWidth - width) / 2
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 28
+            width: hudRow.implicitWidth + 36; height: 56; radius: 28
+            color: appColors.dark ? "#f2333333" : "#f7ffffff"
+            border.color: appColors.line
+            opacity: 0; visible: opacity > 0.01; z: 4
+            Accessible.role: Accessible.AlertMessage
+            Accessible.name: hudTitle.text + ", changed on your headphones"
+            Rectangle { // soft shadow
+                z: -1; anchors.fill: parent; anchors.topMargin: 4; anchors.bottomMargin: -4; radius: parent.radius
+                color: appColors.shadow; opacity: 0.6
+            }
+            RowLayout {
+                id: hudRow
+                anchors.centerIn: parent; spacing: 12
+                Glyph { kind: window.modeInfo(hud.mode) ? window.modeInfo(hud.mode).icon : "off"; size: 24; weight: 1.6
+                    tint: hud.mode === 0 ? appColors.text : window.modeTone(hud.mode) }
+                ColumnLayout {
+                    spacing: 0
+                    Label { id: hudTitle; text: window.modeInfo(hud.mode) ? window.modeInfo(hud.mode).name : ""; color: appColors.text; font.pixelSize: 14; font.weight: Font.DemiBold }
+                    Label { text: "Changed on your headphones"; color: appColors.muted; font.pixelSize: 12 }
+                }
+            }
+            SequentialAnimation {
+                id: hudAnim
+                ParallelAnimation {
+                    NumberAnimation { target: hud; property: "opacity"; to: 1; duration: window.ms(160) }
+                    NumberAnimation { target: hud; property: "scale"; from: 0.94; to: 1; duration: window.ms(220); easing.type: Easing.OutBack }
+                }
+                PauseAnimation { duration: 2400 }
+                NumberAnimation { target: hud; property: "opacity"; to: 0; duration: window.ms(260) }
             }
         }
 

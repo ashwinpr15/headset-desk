@@ -1,4 +1,4 @@
-> **Current policy (v0.5.0 beta):** The capture results below are the historical read-only baseline. The desktop offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. The owner's 0.3.0 desktop observations are recorded under *Owner-observed desktop use*; they are not packet captures. The internal diagnostic target remains strictly read-only.
+> **Current policy (v0.6.0 beta):** The capture results below are the historical read-only baseline. The desktop offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. The owner's 0.3.0 desktop observations are recorded under *Owner-observed desktop use*; they are not packet captures. The internal diagnostic target remains strictly read-only.
 
 # Hardware evidence and read-only diagnostics
 
@@ -40,6 +40,10 @@ Not covered: other Ambient levels on XM5, EQ/Clear Bass writes on XM5, an itemis
 With 0.4.0 on the WH-CH720N the owner reported that tapping **Ambient** produced noise cancelling in the headphones while the app showed Ambient, and that tapping the other mode did the reverse. The app and the sound disagreed, so the Ambient/NC bit was inverted on this model, and the same error made the readback check fail (Ambient level read from the wrong mode), which switched **Allow changes** off after every change. 0.5.0 reads and writes that bit the other way round **for the CH720N only** (WH-1000XM5 keeps the upstream order, which matched what the owner heard on 0.3.0). This is again an owner observation, not a packet capture; it needs the owner's check on 0.5.0 before it is treated as settled.
 
 0.5.0 also adds Speak-to-Chat (XM5 only), DSEE / DSEE Extreme and Voice passthrough as experimental controls. They use the imported serializers; nothing on real hardware has verified them yet, their write confidence is UNKNOWN, and they are not queried until **Allow changes** is on.
+
+## Headphone button detection (v0.6.0-beta.1)
+
+0.6.0 listens for the headset's own noise-control notification (`69 17 01 <effect> <type> <voice> <level>`, same layout as the `67 17` reply) and shows the new mode. Receiving it only causes the app's normal empty ACK; nothing else is sent. While the window is open, the app also re-reads the noise mode (the allow-listed `66 17` GET) every 4 seconds, in case a firmware version doesn't announce button presses. Neither path has been captured on the owner's XM5 or CH720N yet; the earlier read-only XM5 capture showed only `c9` notifications, because no button was pressed during it.
 
 ## Repeating a read-only session
 

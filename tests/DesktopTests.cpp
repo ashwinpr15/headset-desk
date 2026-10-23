@@ -158,6 +158,15 @@ private slots:
         device.setSpeakToChat(true); QTRY_VERIFY(!device.busy());
         QVERIFY(device.state().value("speak").toBool());
         auto* speak = find(window->contentItem(), "speakSwitch"); QVERIFY(speak); QVERIFY(speak->isEnabled());
+        // A press of the headphones' own button shows up without the app sending anything.
+        QTest::qWait(1700); // past the window in which the headset's echo of an app change is ignored
+        const int before = device.state().value("externalNoiseChanges").toInt();
+        device.simulateHeadphoneButton(1);
+        QTRY_COMPARE(device.state().value("noiseMode").toInt(), 1);
+        QTRY_COMPARE(device.state().value("externalNoiseChanges").toInt(), before + 1);
+        auto* hud = find(window->contentItem(), "headphoneHud"); QVERIFY(hud);
+        QTRY_VERIFY(hud->isVisible());
+        QVERIFY(device.state().value("controlsEnabled").toBool()); // a button press never turns changes off
         auto* nav = find(window->contentItem(), "navSound"); QVERIFY(nav);
         QVERIFY(QMetaObject::invokeMethod(nav, "clicked")); QTRY_COMPARE(window->property("page").toInt(), 1);
         const auto captures = qEnvironmentVariable("HEADSET_DESK_CAPTURE_DIR");
@@ -167,6 +176,17 @@ private slots:
         }
         device.enableControls(false); QTRY_VERIFY(!device.busy());
         QVERIFY(!slider->isEnabled());
+        // Tapping a mode while changes are locked asks first, then switches after the opt-in.
+        auto* ambient = find(window->contentItem(), "noiseMode2"); QVERIFY(ambient); QVERIFY(ambient->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(ambient, "clicked"));
+        QCOMPARE(window->property("pendingMode").toInt(), 2);
+        QCOMPARE(device.state().value("noiseMode").toInt(), 1); // nothing sent yet
+        auto* allow = find(window->contentItem(), "allowAndSwitch"); QVERIFY(allow); QTRY_VERIFY(allow->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(allow, "clicked"));
+        QTRY_COMPARE(device.state().value("noiseMode").toInt(), 2);
+        QTRY_VERIFY(!device.busy());
+        QCOMPARE(window->property("pendingMode").toInt(), -1);
+        device.enableControls(false); QTRY_VERIFY(!device.busy());
         QGuiApplication::styleHints()->setColorScheme(previousScheme);
     }
 };

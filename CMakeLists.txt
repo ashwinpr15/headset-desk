@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(HeadsetDesk VERSION 0.5.0 LANGUAGES CXX)
+project(HeadsetDesk VERSION 0.6.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Headset Desk v1 targets Windows 11 only.")

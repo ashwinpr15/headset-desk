@@ -70,6 +70,7 @@ void DeviceController::apply(const Snapshot& snapshot, bool fullRefresh) {
         {"eqKnown", snapshot.equalizer.value.has_value()}, {"eqError", errorOf(snapshot.equalizer)},
         {"bands", bands}, {"bass", snapshot.equalizer.value ? QVariant(snapshot.equalizer.value->clearBass) : QVariant{}},
         {"lastChange", QString::fromStdString(snapshot.lastChange)},
+        {"externalNoiseChanges", snapshot.externalNoiseChanges},
         {"updated", last}, {"updatedEpoch", updatedEpoch}};
     emit changed();
 }
@@ -94,6 +95,14 @@ void DeviceController::rescan() {
     if (busy_ || quitting_ || state_.value("connected").toBool()) return;
     busy_ = true; emit changed();
     QMetaObject::invokeMethod(worker_, &DeviceWorker::rescan, Qt::QueuedConnection);
+}
+void DeviceController::setWatching(bool watching) {
+    if (quitting_) return;
+    QMetaObject::invokeMethod(worker_, [worker = worker_, watching] { worker->setWatching(watching); }, Qt::QueuedConnection);
+}
+void DeviceController::simulateHeadphoneButton(int mode) {
+    if (!simulated_ || quitting_) return;
+    QMetaObject::invokeMethod(worker_, [worker = worker_, mode] { worker->simulateHeadphoneButton(mode); }, Qt::QueuedConnection);
 }
 void DeviceController::quit() {
     if (quitting_) return;

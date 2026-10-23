@@ -14,8 +14,8 @@
 Sony keeps the controls for its headphones in a phone app. **Headset Desk** brings the everyday ones to your Windows PC: check the battery, switch noise cancelling, tweak the EQ, and get back to work. It sits quietly in the tray, needs no account, and never phones home.
 
 <p align="center">
-  <a href="https://github.com/ashwinpr15/headset-desk/releases/download/v0.5.0-beta.1/headset-desk-v0.5.0-beta.1-windows-x64-setup.exe"><b>⬇ Download the installer (0.5.0 beta)</b></a>
-  &nbsp;·&nbsp; <a href="https://github.com/ashwinpr15/headset-desk/releases/download/v0.5.0-beta.1/headset-desk-v0.5.0-beta.1-windows-x64.zip">Portable ZIP</a>
+  <a href="https://github.com/ashwinpr15/headset-desk/releases/download/v0.6.0-beta.1/headset-desk-v0.6.0-beta.1-windows-x64-setup.exe"><b>⬇ Download the installer (0.6.0 beta)</b></a>
+  &nbsp;·&nbsp; <a href="https://github.com/ashwinpr15/headset-desk/releases/download/v0.6.0-beta.1/headset-desk-v0.6.0-beta.1-windows-x64.zip">Portable ZIP</a>
   &nbsp;·&nbsp; <a href="https://github.com/ashwinpr15/headset-desk/releases">All releases</a>
 </p>
 
@@ -33,9 +33,11 @@ Sony keeps the controls for its headphones in a phone app. **Headset Desk** brin
 
 - 🔋 **See what's going on:** model, battery level (as a ring around the headphones), charging state, firmware and the codec the headset reports. If it doesn't know a value, it shows a dash instead of guessing.
 - 🎧 **Noise control:** Noise Cancelling, Ambient or Off, with an Ambient level from 1 to 20 and voice passthrough.
+- 🔁 **Stays in sync with your headphones:** press the NC/Ambient button on the headset and the app follows, with a small toast so you can see what changed. Reading this never sends anything to the headphones.
+- ⚡ **Quick switch from the tray:** right-click the tray icon to pick Noise Cancelling, Ambient or Off without opening the window.
 - 🎚️ **Sound:** a five-band EQ (400 Hz to 16 kHz) with a live curve, plus Clear Bass from −10 to +10.
 - ✨ **Extras (experimental):** Speak-to-Chat on the XM5, and DSEE Extreme / DSEE.
-- 🪟 **Feels like Windows 11:** a collapsible navigation pane, light and dark themes that follow Windows, keyboard focus rings, and no animation when Windows animation effects are off.
+- 🪟 **Feels like Windows 11:** a collapsible navigation pane, light and dark themes that follow Windows, keyboard shortcuts (Ctrl+1–4 for pages, F5 to refresh), keyboard focus rings, and no animation when Windows animation effects are off.
 - 🧘 **Stays out of the way:** closing the window keeps it in the tray with the connection alive; **Quit** in the tray menu exits. Opening it twice just brings the first window forward.
 - 🔒 **Private by design:** no cloud account, analytics, auto-updater, background service or launch at sign-in.
 
@@ -44,7 +46,7 @@ Sony keeps the controls for its headphones in a phone app. **Headset Desk** brin
 1. **Install.** Run the installer and open **Headset Desk** from Start. No admin rights, Qt or developer tools needed. Prefer portable? Extract the *whole* ZIP and run `headset-desk.exe` from inside the folder.
 2. **Pair your headphones** in Windows Bluetooth settings and turn them on. Close any other headset-control tools first.
 3. **Connect.** The app connects on its own when Windows reports a supported headset as active. If not, click **Connect**.
-4. **Change settings when you're ready.** Everything starts read-only. Turn on **Allow changes** on the Headphones page, then pick a noise mode, drag the EQ and click **Apply**, or flip a switch on **Features**.
+4. **Change settings when you're ready.** Everything starts read-only. Tap a noise mode and the app offers **Turn on and switch**, or turn on **Allow changes** yourself on the Headphones page. Then drag the EQ and click **Apply**, or flip a switch on **Features**.
 
 > **Heads-up:** the app and installer aren't code-signed yet, so Windows SmartScreen may warn about an unrecognized app. Only download from this repo's [Releases](https://github.com/ashwinpr15/headset-desk/releases), and check `CHECKSUMS.txt` if you'd like to verify your file.
 

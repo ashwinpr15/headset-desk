@@ -29,6 +29,8 @@ public:
 
     NoiseControlState getNoiseControl() override;
     void setNoiseControl(const NoiseControlState& state) override;
+    // Parses a 67 17 reply or a 69 17 notification payload (throws on malformed input).
+    [[nodiscard]] static NoiseControlState parseNoiseControl(const std::vector<uint8_t>& payload, bool ncAmbientSwapped);
 
     EqualizerState getEqualizer() override;
     void setEqualizerPreset(int preset) override;

@@ -1,4 +1,4 @@
-> **Current policy (v0.5.0 beta):** The capture results below are the historical read-only baseline. The desktop offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. The owner reports the 0.3.0 app worked on this CH720N (firmware 1.1.4); see [owner-observed desktop use](hardware-validation.md#owner-observed-desktop-use-2026-10-07-v030-beta1). Write confidence in code remains UNKNOWN.
+> **Current policy (v0.6.0 beta):** The capture results below are the historical read-only baseline. The desktop offers per-connection experimental noise/EQ opt-in, with ACK and fresh readback. The owner reports the 0.3.0 app worked on this CH720N (firmware 1.1.4); see [owner-observed desktop use](hardware-validation.md#owner-observed-desktop-use-2026-10-07-v030-beta1). Write confidence in code remains UNKNOWN.
 
 # WH-CH720N validation record
 

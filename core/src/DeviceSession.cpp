@@ -10,6 +10,20 @@ std::string describe(sony::protocol::NoiseControlMode mode) {
     return mode == NoiseControlMode::NoiseCancelling ? "Noise Cancelling" : mode == NoiseControlMode::Ambient ? "Ambient" : "Off";
 }
 }
+namespace {
+long long nowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+}
+
+// Marks an app-initiated setting change, so the headset's own echo of it is not
+// mistaken for a button press.
+struct DeviceSession::CommandScope {
+    DeviceSession& session;
+    explicit CommandScope(DeviceSession& owner) : session(owner) { session.commandInFlight_ = true; }
+    ~CommandScope() { session.commandEndedMs_ = nowMs(); session.commandInFlight_ = false; }
+};
+
 DeviceSession::DeviceSession(std::unique_ptr<ReadOnlyTransport> transport) : transport_(std::move(transport)) {
     if (!transport_) throw std::invalid_argument("Read-only transport required");
 }
@@ -45,6 +59,8 @@ void DeviceSession::connect(const Candidate& candidate) {
         session_->connect(candidate.device.address);
         ncAmbientSwapped_ = *model == Model::Ch720n;
         protocol_ = std::make_unique<sony::protocol::ProtocolV2>(*session_, false, true, ncAmbientSwapped_);
+        // Read-only listener: the headset reports noise changes made with its own button.
+        session_->onNotification([this](const sony::protocol::SonyFrame& frame) { onNotification(frame.payload); });
         protocol_->initDevice(); // Reviewed GET handshake; no feature setters.
         if (!session_->isConnected()) throw sony::SonyException(sony::SonyErrorCode::Disconnected);
         std::lock_guard state(stateMutex_);
@@ -84,6 +100,7 @@ void DeviceSession::refresh() {
         next.model = state_.model;
         next.controlsEnabled = state_.controlsEnabled;
         next.lastChange = state_.lastChange;
+        next.externalNoiseChanges = state_.externalNoiseChanges;
     }
     next.connection = ConnectionState::Connected;
     try {
@@ -185,6 +202,7 @@ void DeviceSession::commandFailed() {
 
 void DeviceSession::setNoise(sony::protocol::NoiseControlMode mode, int ambientLevel, int voice) {
     std::lock_guard operation(operationMutex_);
+    CommandScope command(*this);
     const auto snapshot = requireControls();
     using sony::protocol::NoiseControlMode;
     if (!snapshot.noise.value || (mode != NoiseControlMode::Off && mode != NoiseControlMode::NoiseCancelling && mode != NoiseControlMode::Ambient))
@@ -228,6 +246,7 @@ void DeviceSession::setNoise(sony::protocol::NoiseControlMode mode, int ambientL
 
 void DeviceSession::setEqualizer(int clearBass, const std::vector<int>& bands) {
     std::lock_guard operation(operationMutex_);
+    CommandScope command(*this);
     const auto snapshot = requireControls();
     if (!snapshot.equalizer.value || bands.size() != 5 || clearBass < -10 || clearBass > 10 ||
         !std::all_of(bands.begin(), bands.end(), [](int value) { return value >= -10 && value <= 10; }))
@@ -262,6 +281,7 @@ void DeviceSession::setDsee(bool enabled) { setToggle(true, enabled); }
 
 void DeviceSession::setToggle(bool dsee, bool enabled) {
     std::lock_guard operation(operationMutex_);
+    CommandScope command(*this);
     const auto snapshot = requireControls();
     const auto& current = dsee ? snapshot.dsee : snapshot.speakToChat;
     if (!current.value || (!dsee && snapshot.model != Model::Xm5))
@@ -288,6 +308,44 @@ void DeviceSession::setToggle(bool dsee, bool enabled) {
         throw SettingNotConfirmed("The headphones kept " + name + " " + (enabled ? "off" : "on") + ".");
     } catch (const SettingNotConfirmed&) { throw;
     } catch (...) { commandFailed(); throw; }
+}
+
+void DeviceSession::onNotification(const std::vector<std::uint8_t>& payload) {
+    // Only the noise notification (69 17) is used. It is parsed and shown; nothing is sent.
+    if (payload.size() < 7 || payload[0] != 0x69 || payload[1] != 0x17) return;
+    sony::protocol::NoiseControlState noise;
+    try {
+        noise = sony::protocol::ProtocolV2::parseNoiseControl(payload, ncAmbientSwapped_);
+        if (noise.mode == sony::protocol::NoiseControlMode::Ambient && (noise.ambientLevel < 1 || noise.ambientLevel > 20)) return;
+    } catch (...) { return; }
+    if (observeNoise(noise, "on the headphones") && listener_) listener_();
+}
+
+bool DeviceSession::observeNoise(const sony::protocol::NoiseControlState& noise, const char* source) {
+    std::lock_guard state(stateMutex_);
+    if (state_.connection != ConnectionState::Connected) return false;
+    const auto& previous = state_.noise.value;
+    const bool changed = !previous || previous->mode != noise.mode || previous->ambientLevel != noise.ambientLevel ||
+        previous->focusOnVoice != noise.focusOnVoice;
+    const bool modeChanged = previous && previous->mode != noise.mode;
+    state_.noise.known(noise);
+    // Within 1.5 s of an app change, the headset is just confirming what the app asked for.
+    const bool ours = commandInFlight_ || nowMs() - commandEndedMs_ < 1500;
+    if (modeChanged && !ours) {
+        ++state_.externalNoiseChanges;
+        state_.lastChange = "Noise: " + describe(noise.mode) + " set " + source;
+    }
+    return changed;
+}
+
+bool DeviceSession::refreshNoise() {
+    std::lock_guard operation(operationMutex_);
+    if (!session_ || !session_->isConnected() || !protocol_) return false;
+    try {
+        const auto noise = protocol_->getNoiseControl();
+        if (noise.mode == sony::protocol::NoiseControlMode::Ambient && (noise.ambientLevel < 1 || noise.ambientLevel > 20)) return false;
+        return observeNoise(noise, "on the headphones");
+    } catch (...) { return false; } // A missed poll changes nothing; the next one or a full refresh will.
 }
 
 Snapshot DeviceSession::state() const {

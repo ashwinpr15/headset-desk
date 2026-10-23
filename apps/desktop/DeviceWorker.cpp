@@ -7,7 +7,12 @@
 using namespace headsetdesk;
 
 DeviceWorker::DeviceWorker(QString simulation) : simulation_(std::move(simulation)),
-    batteryTimer_(new QTimer(this)), reconnectTimer_(new QTimer(this)) {
+    batteryTimer_(new QTimer(this)), reconnectTimer_(new QTimer(this)), noiseTimer_(new QTimer(this)) {
+    noiseTimer_->setInterval(4000);
+    connect(noiseTimer_, &QTimer::timeout, this, [this] {
+        if (!session_ || stopping_ || session_->state().connection != ConnectionState::Connected) return;
+        if (session_->refreshNoise()) emit snapshotChanged(session_->state(), false);
+    });
     batteryTimer_->setInterval(180000);
     reconnectTimer_->setSingleShot(true);
     connect(batteryTimer_, &QTimer::timeout, this, [this] { refresh(true); });
@@ -66,8 +71,15 @@ void DeviceWorker::open(const Candidate& target, bool automatic) {
     emit messageChanged("Connecting…");
     try {
         session_.reset();
+        pressButton_ = {};
         session_ = std::make_unique<DeviceSession>(simulation_.isEmpty()
-            ? makeWindowsReadOnlyTransport() : makeSimulatedTransport(target.model));
+            ? makeWindowsReadOnlyTransport() : makeSimulatedTransport(target.model, {}, SimulationFailure::None, &pressButton_));
+        // Runs on the Bluetooth reader thread: only post back to this worker's thread.
+        session_->setChangeListener([this] {
+            QMetaObject::invokeMethod(this, [this] {
+                if (session_ && !stopping_) emit snapshotChanged(session_->state(), false);
+            }, Qt::QueuedConnection);
+        });
         session_->connect(target);
         session_->refresh();
         const auto snapshot = session_->state();
@@ -100,7 +112,7 @@ void DeviceWorker::disconnectDevice() {
     reconnectAllowed_ = false; attempts_ = 0;
     reconnectTimer_->stop(); batteryTimer_->stop();
     if (session_) session_->disconnect();
-    session_.reset(); target_.reset();
+    session_.reset(); target_.reset(); pressButton_ = {};
     emit snapshotChanged({}, false);
     emit messageChanged("Disconnected. Connect whenever you’re ready.");
     emit busyChanged(false);
@@ -161,6 +173,15 @@ void DeviceWorker::enableControls(bool enabled) {
     }, enabled ? "Experimental controls enabled for this connection." : QString{});
 }
 
+void DeviceWorker::setWatching(bool watching) {
+    if (watching && !stopping_) noiseTimer_->start(); else noiseTimer_->stop();
+}
+
+void DeviceWorker::simulateHeadphoneButton(int mode) {
+    if (simulation_.isEmpty() || !pressButton_ || !session_ || mode < 0 || mode > 2) return;
+    pressButton_(static_cast<sony::protocol::NoiseControlMode>(mode));
+}
+
 void DeviceWorker::setNoise(int mode, int level, int voice) {
     runCommand([this, mode, level, voice] {
         session_->setNoise(static_cast<sony::protocol::NoiseControlMode>(mode), level, voice);
@@ -191,6 +212,7 @@ void DeviceWorker::rescan() {
 
 void DeviceWorker::shutdown() {
     stopping_ = true;
+    noiseTimer_->stop();
     disconnectDevice();
     emit stopped();
 }

@@ -3,6 +3,10 @@
 #include "headsetdesk/Simulation.h"
 #include "sony/protocol/FrameCodec.h"
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <thread>
 
 using namespace headsetdesk;
 using namespace sony::protocol;
@@ -105,6 +109,43 @@ TEST_CASE("Speak-to-Chat, DSEE and voice passthrough need opt-in and confirm by 
         CHECK_FALSE(session.state().dsee.value);
         requests.clear(); session.refresh();
         for (const auto& p : requests) CHECK((p[0] != 0xe6 && p[0] != 0xf6));
+    }
+}
+
+TEST_CASE("Headphone button changes are shown without sending anything", "[controls][button]") {
+    for (auto model : {Model::Xm5, Model::Ch720n}) {
+        std::vector<std::vector<std::uint8_t>> requests;
+        std::function<void(NoiseControlMode)> press;
+        DeviceSession session(makeSimulatedTransport(model, recorder(requests), SimulationFailure::None, &press));
+        std::atomic<int> heard{0};
+        session.setChangeListener([&heard] { ++heard; });
+        const auto waitFor = [&heard](int count) {
+            for (int i = 0; i < 200 && heard < count; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            return heard >= count;
+        };
+        session.connect(simulatedCandidate(model)); session.refresh();
+        REQUIRE(session.state().noise.value->mode == NoiseControlMode::NoiseCancelling);
+        requests.clear();
+        press(NoiseControlMode::Ambient);
+        REQUIRE(waitFor(1));
+        CHECK(session.state().noise.value->mode == NoiseControlMode::Ambient);
+        CHECK(session.state().externalNoiseChanges == 1);
+        CHECK(session.state().lastChange == "Noise: Ambient set on the headphones");
+        press(NoiseControlMode::Off);
+        REQUIRE(waitFor(2));
+        CHECK(session.state().noise.value->mode == NoiseControlMode::Off);
+        CHECK(session.state().externalNoiseChanges == 2);
+        CHECK(writes(requests) == 0); // only ACKs went out
+        CHECK_FALSE(session.refreshNoise()); // the poll agrees with the notification
+        // The headset's echo of an app change is not counted as a button press.
+        session.enableControls(true);
+        session.setNoise(NoiseControlMode::NoiseCancelling);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        CHECK(session.state().noise.value->mode == NoiseControlMode::NoiseCancelling);
+        CHECK(session.state().externalNoiseChanges == 2);
+        // A full refresh keeps the count.
+        session.refresh();
+        CHECK(session.state().externalNoiseChanges == 2);
     }
 }
 
