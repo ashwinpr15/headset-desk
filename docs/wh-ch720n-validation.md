@@ -18,3 +18,5 @@ Static SBC/AAC support comes from Sony specifications. The absence of LDAC, DSEE
 Unresolved: charging=true, NC/Ambient states, all other EQ preset indices and range endpoints, live Sony model identity, active-codec meaning under multipoint, long sessions and disconnect/reconnect behavior, and every write operation. The captured Off effect overrides retained ambient configuration fields. Synthetic simulations cannot resolve these questions. See [the full comparison and evidence limits](hardware-validation.md).
 
 Owner report on 0.4.0: the Ambient/Noise Cancelling bit is inverted on the CH720N compared with the upstream order; 0.5.0 corrects this for this model. See [hardware evidence](hardware-validation.md).
+
+Owner report on 0.6.0 (2026-10-23): the Ambient/NC fix works on this unit, and the app follows the headset's noise button.

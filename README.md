@@ -65,8 +65,8 @@ Short answer: it's careful by design, but it's still a beta.
 
 | Headphones | Readings | Changing settings |
 |---|---|---|
-| **WH-1000XM5** | ✅ Checked on firmware 2.5.1 | Noise control switched Off → NC → Ambient → Off and confirmed by readback |
-| **WH-CH720N** | ✅ Checked on firmware 1.1.4 | Reported working; a swapped Ambient/NC mode was fixed in 0.5.0 |
+| **WH-1000XM5** | ✅ Checked on firmware 2.5.1 | Noise control switched Off → NC → Ambient → Off and confirmed by readback. Works with 0.6.0, including following the headset's noise button. |
+| **WH-CH720N** | ✅ Checked on firmware 1.1.4 | Works with 0.6.0. The swapped Ambient/NC fix from 0.5.0 is confirmed, and the app follows the headset's noise button. |
 
 Changing settings hasn't been tested across other firmware versions or units yet. Other models and renamed headsets aren't supported. If you try it, I'd love to hear how it went: [open an issue](https://github.com/ashwinpr15/headset-desk/issues/new/choose) with your model and firmware. The full test notes are in [hardware validation](docs/hardware-validation.md), [CH720N notes](docs/wh-ch720n-validation.md) and [beta validation](docs/desktop-validation.md).
 

@@ -45,6 +45,10 @@ With 0.4.0 on the WH-CH720N the owner reported that tapping **Ambient** produced
 
 0.6.0 listens for the headset's own noise-control notification (`69 17 01 <effect> <type> <voice> <level>`, same layout as the `67 17` reply) and shows the new mode. Receiving it only causes the app's normal empty ACK; nothing else is sent. While the window is open, the app also re-reads the noise mode (the allow-listed `66 17` GET) every 4 seconds, in case a firmware version doesn't announce button presses. Neither path has been captured on the owner's XM5 or CH720N yet; the earlier read-only XM5 capture showed only `c9` notifications, because no button was pressed during it.
 
+## Owner-observed desktop use (2026-10-23, v0.6.0-beta.1)
+
+The owner installed 0.6.0 and used it with both headsets. They report that everything works as expected on the WH-1000XM5 and the WH-CH720N. That includes switching noise modes from the app, the CH720N Ambient/NC fix from 0.5.0, and the app following along when the noise button on the headset is pressed. As with the earlier entries, this is the owner's report from using the app, not a packet capture. Write confidence in code stays UNKNOWN.
+
 ## Repeating a read-only session
 
 Pair the headset normally in Windows 11, power it on, and close other Sony-control tools. Test one headset at a time. Turn the other headset off for an unambiguous active selection.
