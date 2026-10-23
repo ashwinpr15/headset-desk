@@ -27,6 +27,9 @@ Sony keeps the controls for its headphones in a phone app. **Headset Desk** brin
   <img src="docs/screenshots/sound-dark-100.png" alt="Sound page with a five-band equalizer curve" width="49%">
   <img src="docs/screenshots/features-light-100.png" alt="Features page with Speak-to-Chat and DSEE switches" width="49%">
 </p>
+<p align="center">
+  <img src="docs/screenshots/button-dark-100.png" alt="A toast reading Ambient, changed on your headphones, after pressing the headset's button" width="49%">
+</p>
 <p align="center"><sub>Screenshots from the release build, using simulated data.</sub></p>
 
 ## What it does
