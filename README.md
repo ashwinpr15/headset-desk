@@ -34,15 +34,15 @@ Sony keeps the controls for its headphones in a phone app. **Headset Desk** brin
 
 ## What it does
 
-- 🔋 **See what's going on:** model, battery level (as a ring around the headphones), charging state, firmware and the codec the headset reports. If it doesn't know a value, it shows a dash instead of guessing.
-- 🎧 **Noise control:** Noise Cancelling, Ambient or Off, with an Ambient level from 1 to 20 and voice passthrough.
-- 🔁 **Stays in sync with your headphones:** press the NC/Ambient button on the headset and the app follows, with a small toast so you can see what changed. Reading this never sends anything to the headphones.
-- ⚡ **Quick switch from the tray:** right-click the tray icon to pick Noise Cancelling, Ambient or Off without opening the window.
-- 🎚️ **Sound:** a five-band EQ (400 Hz to 16 kHz) with a live curve, plus Clear Bass from −10 to +10.
-- ✨ **Extras (experimental):** Speak-to-Chat on the XM5, and DSEE Extreme / DSEE.
-- 🪟 **Feels like Windows 11:** a collapsible navigation pane, light and dark themes that follow Windows, keyboard shortcuts (Ctrl+1–4 for pages, F5 to refresh), keyboard focus rings, and no animation when Windows animation effects are off.
-- 🧘 **Stays out of the way:** closing the window keeps it in the tray with the connection alive; **Quit** in the tray menu exits. Opening it twice just brings the first window forward.
-- 🔒 **Private by design:** no cloud account, analytics, auto-updater, background service or launch at sign-in.
+-  **See what's going on:** model, battery level (as a ring around the headphones), charging state, firmware and the codec the headset reports. If it doesn't know a value, it shows a dash instead of guessing.
+-  **Noise control:** Noise Cancelling, Ambient or Off, with an Ambient level from 1 to 20 and voice passthrough.
+-  **Stays in sync with your headphones:** press the NC/Ambient button on the headset and the app follows, with a small toast so you can see what changed. Reading this never sends anything to the headphones.
+-  **Quick switch from the tray:** right-click the tray icon to pick Noise Cancelling, Ambient or Off without opening the window.
+-  **Sound:** a five-band EQ (400 Hz to 16 kHz) with a live curve, plus Clear Bass from −10 to +10.
+-  **Extras (experimental):** Speak-to-Chat on the XM5, and DSEE Extreme / DSEE.
+-  **Feels like Windows 11:** a collapsible navigation pane, light and dark themes that follow Windows, keyboard shortcuts (Ctrl+1–4 for pages, F5 to refresh), keyboard focus rings, and no animation when Windows animation effects are off.
+-  **Stays out of the way:** closing the window keeps it in the tray with the connection alive; **Quit** in the tray menu exits. Opening it twice just brings the first window forward.
+-  **Private by design:** no cloud account, analytics, auto-updater, background service or launch at sign-in.
 
 ## Getting started
 
